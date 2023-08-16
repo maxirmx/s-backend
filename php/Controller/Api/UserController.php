@@ -25,30 +25,30 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
-require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 
-class OrgController extends BaseController
+class UserController extends BaseController
 {
     public function execute($id, $method) {
         $rsp = null;
         $strErrorDesc = null;
         try {
-            $orgModel = new OrgModel();
+            $userModel = new UserModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $rsp = $orgModel->addOrg($this->getPostData());
+                $rsp = $userModel->addUser($this->getPostData());
             }
             elseif ($id == null && $method == 'GET') {
-                $rsp = $orgModel->getOrgs();
+                $rsp = $userModel->getUsers();
             }
             elseif ($m == 'GET') {
-                $rsp = $orgModel->getOrg($id);
+                $rsp = $userModel->getUser($id);
             }
             elseif ($m == 'PUT') {
-                $rsp = $orgModel->updateOrg($id, $this->getPostData());
+                $rsp = $userModel->updateUser($id, $this->getPostData());
             }
             elseif ($m == 'DELETE') {
-                $rsp = $orgModel->deleteOrg($id);
+                $rsp = $userModel->deleteUser($id);
             }
             else  {
                 $this->notSupported();
