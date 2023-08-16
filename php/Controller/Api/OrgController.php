@@ -25,18 +25,18 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
+require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
 
 class OrgController extends BaseController
 {
     public function execute($id, $method) {
         $rsp = null;
         $strErrorDesc = null;
-        $strErrorHeader = null;
         try {
             $orgModel = new OrgModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $rsp = $orgModel->addOrg(getPostData());
+                $rsp = $orgModel->addOrg($this->getPostData());
             }
             elseif ($id == null && $method == 'GET') {
                 $rsp = $orgModel->getOrgs();
@@ -45,30 +45,22 @@ class OrgController extends BaseController
                 $rsp = $orgModel->getOrg($id);
             }
             elseif ($m == 'PUT') {
-                $rsp = $orgModel->updateOrg($id, getPostData());
+                $rsp = $orgModel->updateOrg($id, $this->getPostData());
             }
             elseif ($m == 'DELETE') {
                 $rsp = $orgModel->deleteOrg($id);
             }
             else  {
-                $this->sendOutput(json_encode(array('error' => 'Method not supported')),
-                            array('Content-Type: application/json', 'HTTP/1.1 422 Unprocessable Entity')
-                );
+                $this->notSupported();
             }
         }
         catch (Error $e) {
             $strErrorDesc = $e->getMessage();
-            $strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
         }
         if (!$strErrorDesc) {
-            $this->sendOutput(
-                json_encode($rsp),
-                array('Content-Type: application/json', 'HTTP/1.1 200 OK')
-            );
+            $this->ok($rsp);
         } else {
-            $this->sendOutput(json_encode(array('error' => $strErrorDesc)),
-                array('Content-Type: application/json', $strErrorHeader)
-            );
+            $this->serverError($strErrorDesc);
         }
     }
 

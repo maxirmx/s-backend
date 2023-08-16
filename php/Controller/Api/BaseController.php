@@ -64,6 +64,14 @@ class BaseController
     protected function sendOutput($data, $httpHeaders=array())
     {
         header_remove('Set-Cookie');
+
+        header('Access-Control-Allow-Headers: Origin, Content-Type, Content-Length, Accept, X-Auth-Token');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Request-Headers: Origin, X-Custom-Header, X-Requested-With, Authorization, Content-Type, Content-Length, Accept');
+        header('Access-Control-Expose-Headers: Content-Length, X-Kuma-Revision');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+
         if (is_array($httpHeaders) && count($httpHeaders)) {
             foreach ($httpHeaders as $httpHeader) {
                 header($httpHeader);
@@ -77,6 +85,28 @@ class BaseController
     {
         $data = file_get_contents('php://input');
         return json_decode($data, true);
+    }
+
+    protected function notSupported()
+    {
+        $this->sendOutput(json_encode(array('error' => 'Method not supported')),
+            array('Content-Type: application/json', 'HTTP/1.1 422 Unprocessable Entity')
+        );
+    }
+
+    protected function serverError($desc)
+    {
+        $this->sendOutput(json_encode(array('error' => $desc)),
+        array('Content-Type: application/json', 'HTTP/1.1 500 Internal Server Error')
+        );
+    }
+
+    protected function ok($rsp)
+    {
+        $this->sendOutput(
+            json_encode($rsp),
+            array('Content-Type: application/json', 'HTTP/1.1 200 OK')
+        );
     }
 }
 ?>

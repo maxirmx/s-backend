@@ -25,10 +25,44 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
+require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 
-define("DB_HOST", "swc3778270.mysql");
-define("DB_USERNAME", "swc3778270_u0");
-define("DB_PASSWORD", "rC+S8fYX");
-define("DB_DATABASE_NAME", "swc3778270_tracker");
+class UserController extends BaseController
+{
+    public function execute($id, $method) {
+        $rsp = null;
+        $strErrorDesc = null;
+        try {
+            $userModel = new UserModel();
+            $m = strtoupper($method);
+            if ($id == 'add' && $m == 'POST') {
+                $rsp = $userModel->addUser($this->getPostData());
+            }
+            elseif ($id == null && $method == 'GET') {
+                $rsp = $userModel->getUsers();
+            }
+            elseif ($m == 'GET') {
+                $rsp = $userModel->getUser($id);
+            }
+            elseif ($m == 'PUT') {
+                $rsp = $userModel->updateUser($id, $this->getPostData());
+            }
+            elseif ($m == 'DELETE') {
+                $rsp = $userModel->deleteUser($id);
+            }
+            else  {
+                $this->notSupported();
+            }
+        }
+        catch (Error $e) {
+            $strErrorDesc = $e->getMessage();
+        }
+        if (!$strErrorDesc) {
+            $this->ok($rsp);
+        } else {
+            $this->serverError($strErrorDesc);
+        }
+    }
 
+}
 ?>
