@@ -53,6 +53,17 @@ class Database
         }
         return false;
     }
+    public function execute($query = "" , $types = "", $params = [])
+    {
+        try {
+            $stmt = $this->executeStatement( $query , $types, $params );
+            $res = $stmt->affected_rows;
+            $stmt->close();
+        } catch(Exception $e) {
+            throw New Exception( $e->getMessage() );
+        }
+        return $res;
+    }
     private function executeStatement($query = "" , $types= "", $params = [])
     {
         try {

@@ -31,8 +31,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode( '/', $uri );
 
 if (!isset($uri[2])) {
-    header("HTTP/1.1 404 Not Found");
-    exit();
+    notFound();
 }
 
 if ($uri[2] == 'orgs') {
@@ -41,7 +40,16 @@ if ($uri[2] == 'orgs') {
     $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
 }
 else {
+    notFound();
+}
+
+function notFound() {
     header("HTTP/1.1 404 Not Found");
+    header('Access-Control-Allow-Headers: Origin, Content-Type, Accept, X-Auth-Token');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Request-Headers: Origin, X-Custom-Header, X-Requested-With, Authorization, Content-Type, Accept');
+    header('Access-Control-Expose-Headers: Content-Length, X-Kuma-Revision');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
     exit();
 }
 ?>

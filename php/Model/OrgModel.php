@@ -36,7 +36,8 @@ class OrgModel extends Database
     }
     public function addOrg($data)
     {
-        $this->insert("INSERT INTO organizations (name) VALUES (?)", 's', array($data['name']));
+        $res = $this->execute("INSERT INTO organizations (name) VALUES (?)", 's', array($data['name']));
+        return array("res" => $res );
     }
     public function getOrg($id)
     {
@@ -45,11 +46,13 @@ class OrgModel extends Database
     }
     public function updateOrg($id, $data)
     {
-        $this->update("UPDATE organizations SET name = ? WHERE id = ?", 'si', array($data['name'], $id));
+        $res = $this->execute("UPDATE organizations SET name = ? WHERE id = ?", 'si', array($data['name'], $id));
+        return array("res" => $res );
     }
     public function deleteOrg($id)
     {
-        $this->delete("DELETE FROM organizations WHERE id = ?", 'i', array($id));
+        $res = $this->execute("DELETE FROM organizations WHERE id = ?", 'i', array($id));
+        return array("res" => $res );
     }
 }
 ?>

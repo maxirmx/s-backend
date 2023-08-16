@@ -36,7 +36,7 @@ class OrgController extends BaseController
             $orgModel = new OrgModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $rsp = $orgModel->addOrg(getPostData());
+                $rsp = $orgModel->addOrg($this->getPostData());
             }
             elseif ($id == null && $method == 'GET') {
                 $rsp = $orgModel->getOrgs();
@@ -45,7 +45,7 @@ class OrgController extends BaseController
                 $rsp = $orgModel->getOrg($id);
             }
             elseif ($m == 'PUT') {
-                $rsp = $orgModel->updateOrg($id, getPostData());
+                $rsp = $orgModel->updateOrg($id, $this->getPostData());
             }
             elseif ($m == 'DELETE') {
                 $rsp = $orgModel->deleteOrg($id);
