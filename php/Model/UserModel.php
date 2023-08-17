@@ -41,11 +41,14 @@ class UserModel extends Database
     }
     public function addUser($data)
     {
+        $email = strtolower($data['email']);
+        $orgId = isset($data['orgId']) ? $data['orgId'] : -1;
+        $patronimic = isset($data['patronimic']) ? $data['patronimic'] : '';
         $password = password_hash($data['password'], PASSWORD_DEFAULT);
         $res = $this->execute("INSERT INTO users (".UserModel::FLDS_INS.") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     'ssssiiiis',
-                    array($data['email'],                               $data['lastName'],  $data['firstName'], isset($data['patronimic']) ? $data['patronimic'] : '',
-                          isset($data['orgId']) ? $data['orgId'] : -1,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                          $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
                           $password)
                 );
         return array("res" => $res );
@@ -55,24 +58,32 @@ class UserModel extends Database
         $result = $this->select("SELECT " . UserModel::FLDS . " FROM users WHERE id = ?", 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
+    public function getUserByEmail($email)
+    {
+        $result = $this->select("SELECT * FROM users WHERE email = ?", 's', array(strtolower($email)));
+        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+    }
     public function updateUser($id, $data)
     {
+        $email = strtolower($data['email']);
+        $orgId = isset($data['orgId']) ? $data['orgId'] : -1;
+        $patronimic = isset($data['patronimic']) ? $data['patronimic'] : '';
         if (isset($data['password'])) {
             $password = password_hash($data['password'], PASSWORD_DEFAULT);
             $res = $this->execute(
                 "UPDATE users SET ".UserModel::FLDS_UPDF." WHERE id = ?",
                 'ssssiiiisi',
-                array($data['email'],                         $data['lastName'],  $data['firstName'], isset($data['patronimic']) ? $data['patronimic'] : '',
-                isset($data['orgId']) ? $data['orgId'] : -1,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
-                $password, $id)
+                array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                      $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                      $password, $id)
             );
         }
         else {
             $res = $this->execute(
                 "UPDATE users SET ".UserModel::FLDS_UPD." WHERE id = ?",
                 'ssssiiiii',
-                array($data['email'],                         $data['lastName'],  $data['firstName'], isset($data['patronimic']) ? $data['patronimic'] : '',
-                isset($data['orgId']) ? $data['orgId'] : -1,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                      $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
                 $id)
             );
         }

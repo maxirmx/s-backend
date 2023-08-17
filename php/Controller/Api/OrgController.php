@@ -29,12 +29,15 @@ require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
 
 class OrgController extends BaseController
 {
-    public function execute($id, $method) {
+    public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
         try {
             $orgModel = new OrgModel();
             $m = strtoupper($method);
+            if ($m != 'GET' && !$user['isAdmin']) {
+                $this->forbidden();
+            }
             if ($id == 'add' && $m == 'POST') {
                 $rsp = $orgModel->addOrg($this->getPostData());
             }

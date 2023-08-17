@@ -29,12 +29,15 @@ require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 
 class UserController extends BaseController
 {
-    public function execute($id, $method) {
+    public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
         try {
             $userModel = new UserModel();
             $m = strtoupper($method);
+            if ($m != 'GET' && !$user['isAdmin'] && $id != $user['id']) {
+                $this->forbidden();
+            }
             if ($id == 'add' && $m == 'POST') {
                 $rsp = $userModel->addUser($this->getPostData());
             }
