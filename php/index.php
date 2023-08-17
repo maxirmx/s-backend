@@ -42,7 +42,6 @@ $user = null;
 
 if ($uri[2] != 'auth') {
     $user = $auth->checkAuth();
-
     if ($uri[2] == 'orgs') {
         require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
         $controller = new OrgController();

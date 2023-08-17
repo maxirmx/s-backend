@@ -25,33 +25,54 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
-require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
+require_once PROJECT_ROOT_PATH . "/Controller/Libs/jwt.php";
 
-class OrgController extends BaseController
+class AuthController extends BaseController
 {
-    public function execute($id, $method, $user) {
+    public function checkAuth() {
+        $token = get_bearer_token();
+        if (!$token) {
+            $this->notAuthorized();
+        }
+        $user = is_jwt_valid($token, JWT_SECRET);
+        if (!$user) {
+            $this->notAuthorized();
+        }
+        if (!$user->isEnabled) {
+            $this->forbidden();
+        }
+        return $user;
+    }
+
+    public function execute($id, $method) {
         $rsp = null;
         $strErrorDesc = null;
         try {
-            $orgModel = new OrgModel();
             $m = strtoupper($method);
-            if ($m != 'GET' && !$user->isAdmin) {
-                $this->forbidden();
-            }
-            if ($id == 'add' && $m == 'POST') {
-                $rsp = $orgModel->addOrg($this->getPostData());
-            }
-            elseif ($id == null && $method == 'GET') {
-                $rsp = $orgModel->getOrgs();
-            }
-            elseif ($m == 'GET') {
-                $rsp = $orgModel->getOrg($id);
-            }
-            elseif ($m == 'PUT') {
-                $rsp = $orgModel->updateOrg($id, $this->getPostData());
-            }
-            elseif ($m == 'DELETE') {
-                $rsp = $orgModel->deleteOrg($id);
+            if ($id == 'login' && $m == 'POST') {
+                $data = $this->getPostData();
+                if (!isset($data['email']) || !isset($data['password'])) {
+                    $this->missedParameter();
+                }
+                $userModel = new UserModel();
+                $rsp = $userModel->getUserByEmail($data['email']);
+                if (!$rsp) {
+                    $this->notAuthorized();
+                }
+                if (!password_verify($data['password'], $rsp['password'])) {
+                    $this->notAuthorized();
+                }
+                if (!$rsp['isEnabled']) {
+                    $this->forbidden();
+                }
+
+                unset($rsp['password']);
+                $headers = array('alg'=>'HS256','typ'=>'JWT');
+                $payload = array('id' => $rsp['id'], 'isEnabled' => $rsp['isEnabled'], 'isManager' => $rsp['isManager'], 'isAdmin' => $rsp['isAdmin']);
+                $payload['exp'] = (time() + 60*60*4);
+                $jwt = generate_jwt($headers, $payload, JWT_SECRET);
+                $rsp['token'] = $jwt;
             }
             else  {
                 $this->notSupported();

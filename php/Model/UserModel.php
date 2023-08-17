@@ -32,8 +32,10 @@ class UserModel extends Database
 {
     protected const FLDS = "id, email, lastName, firstName, patronimic, orgId, isEnabled, isManager, isAdmin";
     protected const FLDS_INS = "email, lastName, firstName, patronimic, orgId, isEnabled, isManager, isAdmin, password";
-    protected const FLDS_UPDF = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?, password=?";
-    protected const FLDS_UPD = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?";
+    protected const FLDS_UPDF = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, password=?";
+    protected const FLDS_UPD = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?";
+    protected const FLDS_UPDFC = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?, password=?";
+    protected const FLDS_UPDC = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?";
 
     public function getUsers()
     {
@@ -63,29 +65,49 @@ class UserModel extends Database
         $result = $this->select("SELECT * FROM users WHERE email = ?", 's', array(strtolower($email)));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
-    public function updateUser($id, $data)
+    public function updateUser($id, $data, $credentials = false)
     {
         $email = strtolower($data['email']);
         $orgId = isset($data['orgId']) ? $data['orgId'] : -1;
         $patronimic = isset($data['patronimic']) ? $data['patronimic'] : '';
         if (isset($data['password'])) {
             $password = password_hash($data['password'], PASSWORD_DEFAULT);
-            $res = $this->execute(
-                "UPDATE users SET ".UserModel::FLDS_UPDF." WHERE id = ?",
-                'ssssiiiisi',
-                array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                      $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
-                      $password, $id)
-            );
+            if ($credentials) {
+                $res = $this->execute(
+                    "UPDATE users SET ".UserModel::FLDS_UPDFC." WHERE id = ?",
+                    'ssssiiiisi',
+                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                          $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                          $password, $id)
+                );
+            }
+            else {
+                $res = $this->execute(
+                    "UPDATE users SET ".UserModel::FLDS_UPDF." WHERE id = ?",
+                    'ssssisi',
+                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                          $orgId,  $password, $id)
+                );
+            }
         }
         else {
-            $res = $this->execute(
-                "UPDATE users SET ".UserModel::FLDS_UPD." WHERE id = ?",
-                'ssssiiiii',
-                array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                      $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
-                $id)
-            );
+            if ($credentials) {
+                $res = $this->execute(
+                    "UPDATE users SET ".UserModel::FLDS_UPDC." WHERE id = ?",
+                    'ssssiiiii',
+                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                          $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                          $id)
+                );
+            }
+            else {
+                $res = $this->execute(
+                    "UPDATE users SET ".UserModel::FLDS_UPD." WHERE id = ?",
+                    'ssssii',
+                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
+                          $orgId,  $id)
+                );
+            }
         }
         return array("res" => $res );
     }

@@ -35,7 +35,7 @@ class UserController extends BaseController
         try {
             $userModel = new UserModel();
             $m = strtoupper($method);
-            if ($m != 'GET' && !$user['isAdmin'] && $id != $user['id']) {
+            if ($m != 'GET' && !$user->isAdmin && $id != $user->id) {
                 $this->forbidden();
             }
             if ($id == 'add' && $m == 'POST') {
@@ -48,7 +48,7 @@ class UserController extends BaseController
                 $rsp = $userModel->getUser($id);
             }
             elseif ($m == 'PUT') {
-                $rsp = $userModel->updateUser($id, $this->getPostData());
+                $rsp = $userModel->updateUser($id, $this->getPostData(), $user->isAdmin);
             }
             elseif ($m == 'DELETE') {
                 $rsp = $userModel->deleteUser($id);
