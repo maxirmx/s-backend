@@ -35,28 +35,29 @@ class OrgController extends BaseController
         try {
             $orgModel = new OrgModel();
             $m = strtoupper($method);
-            if ($m != 'GET' && !$user->isAdmin) {
-                $this->forbidden('Недостаточно прав для выполнения операции.');
-            }
             if ($id == 'add' && $m == 'POST') {
+                $this->fenceAdmin($user);
                 $rsp = $orgModel->addOrg($this->getPostData());
                 if ($rsp['res'] < 1) {
                     $this->notAdded('Организация с таким названием уже зарегистрирована');
                 }
             }
             elseif ($id == null && $method == 'GET') {
+                $this->fenceAdmin($user);
                 $rsp = $orgModel->getOrgs();
             }
             elseif ($m == 'GET') {
                 $rsp = $orgModel->getOrg($id);
             }
             elseif ($m == 'PUT') {
+                $this->fenceAdmin($user);
                 $rsp = $orgModel->updateOrg($id, $this->getPostData());
                 if ($rsp['res'] < 1) {
                     $this->notAdded('Организация с таким названием уже зарегистрирована');
                 }
             }
             elseif ($m == 'DELETE') {
+                $this->fenceAdmin($user);
                 $rsp = $orgModel->deleteOrg($id);
             }
             else  {

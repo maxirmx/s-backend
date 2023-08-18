@@ -30,10 +30,29 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 
 class ShipmentModel extends Database
 {
+    protected const SHIPMENT_REQ =
+    '   SELECT shipments.id, shipments.number, shipments. dest, shipments.ddate,
+               shipments.userId, shipments.orgId,
+               users.lastName,  users.firstName, users.patronimic,
+               organizations.name,
+               most_recent_status.status, most_recent_status.id AS statusId
+        FROM shipments
+        LEFT JOIN users ON users.id = shipments.userId
+        LEFT JOIN organizations ON organizations.id = shipments.orgId
+        LEFT JOIN (
+            SELECT a.*
+            FROM statuses a
+            LEFT OUTER JOIN statuses b ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
+            WHERE b.shipmentNumber IS NULL)
+        AS most_recent_status
+        ON shipments.number = most_recent_status.shipmentNumber
+        WHERE shipments.number = ?
+    ';
+
     protected const ALL_SHIPMENTS_REQ =
-    '   SELECT  shipments.id, shipments.number, shipments.ddate, shipments.dest,
+    '   SELECT  shipments.id, shipments.number,
                 most_recent_status.date, most_recent_status.location,
-                most_recent_status.status, most_recent_status.comment
+                most_recent_status.status
         FROM shipments
         LEFT JOIN (
             SELECT a.*
@@ -45,9 +64,9 @@ class ShipmentModel extends Database
     ';
 
     protected const FILTERED_SHIPMENTS_REQ =
-    '   SELECT shipments.id, shipments.number, shipments.ddate, shipments.dest,
+    '   SELECT shipments.id, shipments.number,
                most_recent_status.date, most_recent_status.location,
-               most_recent_status.status, most_recent_status.comment
+               most_recent_status.status
         FROM shipments
         LEFT JOIN (
             SELECT a.*
@@ -88,11 +107,25 @@ class ShipmentModel extends Database
                array($data['number'], $data['dest'], $data['ddate'], $userId, $orgId));
         return array("res" => $res );
     }
+
     public function getShipment($id)
     {
         $result = $this->select("SELECT * FROM shipments WHERE id = ?", 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
+
+    public function getShipmentByNumber($number)
+    {
+        $result = $this->select(ShipmentModel::SHIPMENT_REQ, 's', array($number));
+        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+    }
+
+    public function getUserByNumber($number)
+    {
+        $result = $this->select('SELECT shipments.userId, shipments.orgId FROM shipments WHERE shipments.number = ?', 's', array($number));
+        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+    }
+
     public function updateShipment($id, $data)
     {
         $orgId = isset($data['orgId']) ? $data['orgId'] : -2;
@@ -107,29 +140,4 @@ class ShipmentModel extends Database
         return array("res" => $res );
     }
 }
-
-/* SELECT shipments.id, shipments.number, shipments.ddate, shipments.dest, shipments.userId, statuses.date, statuses.location, statuses.status, statuses.comment
-FROM shipments
-LEFT JOIN statuses ON shipments.number = statuses.shipmentNumber
-ORDER BY statuses.id DESC LIMIT 1
-
-
-SELECT shipments.id, shipments.number, shipments.ddate, shipments.dest, shipments.userId, statuses.date, statuses.location, statuses.status, statuses.comment, users.orgId
-FROM shipments
-LEFT JOIN statuses ON shipments.number = statuses.shipmentNumber
-LEFT JOIN users ON shipments.userId = users.id
-ORDER BY statuses.id DESC LIMIT 1
-
-
-SELECT shipments.id, shipments.number, shipments.ddate, shipments.dest, shipments.userId, shipments.orgId, most_recent_status.date, most_recent_status.location, most_recent_status.status, most_recent_status.comment
-FROM shipments
-LEFT JOIN (
-SELECT a.*
-FROM statuses a
-LEFT OUTER JOIN statuses b
-    ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
-WHERE b.shipmentNumber IS NULL) AS most_recent_status
-ON shipments.number = most_recent_status.shipmentNumber
-
-*/
 ?>

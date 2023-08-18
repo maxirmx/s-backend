@@ -26,6 +26,7 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 */
 require_once PROJECT_ROOT_PATH . "/Model/StatusModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/ShipmentModel.php";
 
 class StatusController extends BaseController
 {
@@ -36,13 +37,19 @@ class StatusController extends BaseController
             $statusModel = new StatusModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                if (!$user->isManager) {
-                    $this->forbidden('Недостаточно прав для выполнения операции.');
-                }
+                $this->fenceManager($user);
                 $rsp = $statusModel->addStatus($this->getPostData());
             }
-            elseif ($id == null && $method == 'GET') {
-                $rsp = $shipmentModel->getShipments();
+            elseif ($id != null && $method == 'GET') {
+                $shipmentModel = new ShipmentModel();
+                $usr = $shipmentModel->getUserByNumber($id);
+                if (!$usr) {
+                    $this->notFound('Отправление с таким номером не зарегистрировано.');
+                }
+                if (!$user->isManager && !$this->checkUser($usr, $user) && !$this->checkOrg($usr, $user)) {
+                    $this->forbidden('Недостаточно прав для выполнения операции.');
+                }
+                $rsp = $statusModel->getStatusesByNumber($id);
             }
             else  {
                 $this->notSupported();
@@ -57,6 +64,5 @@ class StatusController extends BaseController
             $this->serverError($strErrorDesc);
         }
     }
-
 }
 ?>

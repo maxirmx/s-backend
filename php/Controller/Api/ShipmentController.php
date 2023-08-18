@@ -38,25 +38,38 @@ class ShipmentController extends BaseController
             $statusModel = new StatusModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                if (!$user->isManager) {
-                    $this->forbidden('Недостаточно прав для выполнения операции.');
-                }
+                $this->fenceManager($user);
                 $data = $this->getPostData();
                 $rsp = $shipmentModel->addShipment($data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Отправление с таким номером уже зарегистрировано');
+                    $this->notAdded('Отправление с таким номером уже зарегистрировано.');
                 }
                 $rsp = $statusModel->addInitialStatus($data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Не удалось зарегистрировать начальный статус для отправления');
+                    $this->notAdded('Не удалось зарегистрировать начальный статус для отправления.');
                 }
             }
-            elseif ($id == null && $method == 'GET') {
-                if ($user->isManager) {
+            elseif ($method == 'GET') {
+                if ($id == null) {
+                    if ($user->isManager) {
                     $rsp = $shipmentModel->getAllShipments();
+                    }
+                    else {
+                        $rsp = $shipmentModel->getFilteredShipments($user->id, $user->orgId);
+                    }
                 }
                 else {
-                    $rsp = $shipmentModel->getFilteredShipments($user->id, $user->orgId);
+                    $rsp = $shipmentModel->getShipmentByNumber($id);
+                    if (!$rsp) {
+                        $this->notFound('Отправление с таким номером не найдено.');
+                    }
+
+                    if (!$user->isManager && !$this->checkUser($rsp, $user) && !$this->checkOrg($rsp, $user)) {
+                        $this->forbidden('Недостаточно прав для выполнения операции.');
+                    }
+
+                    unset($rsp['userId']);
+                    unset($rsp['orgId']);
                 }
             }
             else  {

@@ -85,6 +85,30 @@ class BaseController
         exit;
     }
 
+    protected function checkUser($data, $user) {
+        return  (isset($data['userId']) &&
+                 $data['userId'] >= 0   &&
+                 $data['userId'] == $user->id);
+    }
+
+    protected function checkOrg($data, $user) {
+        return  (isset($data['orgId']) &&
+                 $data['orgId'] >= 0   &&
+                 $data['orgId'] == $user->orgId);
+    }
+
+    protected function fenceAdmin($user) {
+        if (!$user->isAdmin) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
+    protected function fenceManager($user) {
+        if (!$user->isManager) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
     protected function getPostData()
     {
         $data = file_get_contents('php://input');

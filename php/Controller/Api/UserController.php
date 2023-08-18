@@ -51,12 +51,18 @@ class UserController extends BaseController
                 $rsp = $userModel->getUser($id);
             }
             elseif ($m == 'PUT') {
+                if ($id==0) {
+                    $this->forbidden('Параметры этого пользователя нельзя изменить');
+                }
                 $rsp = $userModel->updateUser($id, $this->getPostData(), $user->isAdmin);
                 if ($rsp['res'] < 1) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
             }
             elseif ($m == 'DELETE') {
+                if ($id==0) {
+                    $this->forbidden('Этого пользователя нельзя удалить');
+                }
                 $rsp = $userModel->deleteUser($id);
             }
             else  {

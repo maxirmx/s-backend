@@ -32,8 +32,14 @@ class StatusModel extends Database
 {
     public function getStatuses()
     {
-        return $this->select("SELECT * FROM sstatuses ORDER BY id ASC");
+        return $this->select("SELECT * FROM statuses ORDER BY id ASC");
     }
+
+    public function getStatusesByNumber($number)
+    {
+        return $this->select("SELECT * FROM statuses WHERE shipmentNumber = ? ORDER BY id DESC", 's', array($number));
+    }
+
     public function addStatus($data)
     {
         if (!isset($data['comment'])) {
@@ -46,7 +52,6 @@ class StatusModel extends Database
     public function addInitialStatus($data)
     {
         $data['shipmentNumber'] = $data['number'];
-        $data['status'] = 0;
         return $this->addStatus($data);
     }
     public function getStatus($id)
