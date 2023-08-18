@@ -131,9 +131,17 @@ class ShipmentModel extends Database
         $orgId = isset($data['orgId']) ? $data['orgId'] : -2;
         $userId = isset($data['userId']) ? $data['userId'] : -2;
         $res = $this->execute("UPDATE shipments SET number = ?, dest = ?, ddate = ?, userId = ?, orgId = ? WHERE id = ?", 'sssiii',
-        array($data['number'], $data['dest'], $data['ddate'], $userId, $orgId, $id));
+                               array($data['number'], $data['dest'], $data['ddate'], $userId, $orgId, $id));
         return array("res" => $res );
     }
+
+    public function updateDDate($data)
+    {
+        $res = $this->execute("UPDATE shipments SET ddate = ? WHERE number = ?", 'ss',
+                               array($data['ddate'], $data['shipmentNumber']));
+        return array("res" => $res );
+    }
+
     public function deleteShipment($id)
     {
         $res = $this->execute("DELETE FROM shipments WHERE id = ?", 'i', array($id));

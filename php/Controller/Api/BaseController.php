@@ -33,7 +33,7 @@ class BaseController
 */
     public function __call($name, $arguments)
     {
-        $this->sendOutput('', array('HTTP/1.1 404 Not Found'));
+        $this->notFound('Unknown method:' . $name);
     }
     /**
 * Get URI elements.

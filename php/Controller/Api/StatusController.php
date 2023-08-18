@@ -30,6 +30,10 @@ require_once PROJECT_ROOT_PATH . "/Model/ShipmentModel.php";
 
 class StatusController extends BaseController
 {
+    protected $dh = false;
+    public function deliverHistory() {
+        $this->dh = true;
+    }
     public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
@@ -42,14 +46,29 @@ class StatusController extends BaseController
             }
             elseif ($id != null && $method == 'GET') {
                 $shipmentModel = new ShipmentModel();
-                $usr = $shipmentModel->getUserByNumber($id);
+                if ($this->dh) {
+                    $rsp = $statusModel->getStatusesByNumber($id);
+                    $usr = $shipmentModel->getUserByNumber($id);
+                }
+                else {
+                    $rsp = $statusModel->getStatus($id);
+                    if ($rsp) {
+                        $usr = $shipmentModel->getUserByNumber($rsp['shipmentNumber']);
+                    }
+                }
                 if (!$usr) {
                     $this->notFound('Отправление с таким номером не зарегистрировано.');
                 }
                 if (!$user->isManager && !$this->checkUser($usr, $user) && !$this->checkOrg($usr, $user)) {
                     $this->forbidden('Недостаточно прав для выполнения операции.');
                 }
-                $rsp = $statusModel->getStatusesByNumber($id);
+            }
+            elseif ($id != null && $method == 'PUT') {
+                $shipmentModel = new ShipmentModel();
+                $this->fenceManager($user);
+                $data = $this->getPostData();
+                $rsp = $statusModel->updateStatus($id, $data);
+                $shipmentModel->updateDDate($data);
             }
             else  {
                 $this->notSupported();

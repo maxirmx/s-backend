@@ -61,9 +61,12 @@ else
         require PROJECT_ROOT_PATH . "/Controller/Api/ShipmentController.php";
         $controller = new ShipmentController();
     }
-    elseif ($uri[2] == 'statuses') {
+    elseif ($uri[2] == 'statuses' || $uri[2] == 'history') {
         require PROJECT_ROOT_PATH . "/Controller/Api/StatusController.php";
         $controller = new StatusController();
+        if ($uri[2] == 'history') {
+            $controller->deliverHistory();
+        }
     }
     if (is_null($controller)) {
         $auth->notFound('Неизвестный метод API');
