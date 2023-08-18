@@ -4,6 +4,9 @@
 *  All rights reserved.
 *  This file is a part of s-tracker applcation
 *
+*  Adopted from
+*  https://roytuts.com/how-to-generate-and-validate-jwt-using-php-without-using-third-party-api/
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions
 *  are met:

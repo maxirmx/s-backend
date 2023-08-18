@@ -36,10 +36,13 @@ class UserController extends BaseController
             $userModel = new UserModel();
             $m = strtoupper($method);
             if ($m != 'GET' && !$user->isAdmin && $id != $user->id) {
-                $this->forbidden();
+                $this->forbidden('Недостаточно прав для выполнения операции.');
             }
             if ($id == 'add' && $m == 'POST') {
                 $rsp = $userModel->addUser($this->getPostData());
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                }
             }
             elseif ($id == null && $method == 'GET') {
                 $rsp = $userModel->getUsers();
@@ -49,6 +52,9 @@ class UserController extends BaseController
             }
             elseif ($m == 'PUT') {
                 $rsp = $userModel->updateUser($id, $this->getPostData(), $user->isAdmin);
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                }
             }
             elseif ($m == 'DELETE') {
                 $rsp = $userModel->deleteUser($id);

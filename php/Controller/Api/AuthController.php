@@ -25,6 +25,7 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
+require_once PROJECT_ROOT_PATH . "/Model/LinkModel.php";
 require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 require_once PROJECT_ROOT_PATH . "/Controller/Libs/jwt.php";
 
@@ -33,45 +34,113 @@ class AuthController extends BaseController
     public function checkAuth() {
         $token = get_bearer_token();
         if (!$token) {
-            $this->notAuthorized();
+            $this->notAuthorized('Необходимо войти в систему');
         }
         $user = is_jwt_valid($token, JWT_SECRET);
         if (!$user) {
-            $this->notAuthorized();
+            $this->notAuthorized('Необходимо войти в систему');
         }
         if (!$user->isEnabled) {
-            $this->forbidden();
+            $this->forbidden('Учетная запись не активна.');
         }
         return $user;
     }
 
+    public function processToken($token, $method) {
+        $rsp = null;
+        $strErrorDesc = null;
+        try {
+            $userModel = new UserModel();
+            $m = strtoupper($method);
+            if (isset($token) && $m == 'GET') {
+                $data = is_jwt_valid($token, JWT_SECRET);
+                if (!$data || !$data->email) {
+                    $this->notAuthorized('Время действия ссылки истекло.');
+                }
+                if ($data->type == 'register' || $data->type == 'recover'){
+                    $userModel->enableUserByEmail($data->email);
+                    $rsp = $this->login($userModel, $data->email, null);
+                }
+                else  {
+                    $this->notSupported();
+                }
+            }
+            else  {
+                $this->notSupported();
+            }
+        }
+        catch (Error $e) {
+            $strErrorDesc = $e->getMessage();
+        }
+        if (!$strErrorDesc) {
+            $this->ok($rsp);
+        } else {
+            $this->serverError($strErrorDesc);
+        }
+    }
+
+    protected function login($uModel, $email, $password)
+    {
+        $rsp = $uModel->getUserByEmail($email);
+        if (!$rsp) {
+            $this->notAuthorized('Неправильный адрес электронной почты или пароль');
+        }
+        if ($password && !password_verify($password, $rsp['password'])) {
+            $this->notAuthorized('Неправильный адрес электронной почты или пароль');
+        }
+        if (!$rsp['isEnabled']) {
+            $this->forbidden('Учетная запись не активна.');
+        }
+
+        unset($rsp['password']);
+        $headers = array('alg'=>'HS256','typ'=>'JWT');
+        $payload = array('id' => $rsp['id'], 'isEnabled' => $rsp['isEnabled'],
+                         'isManager' => $rsp['isManager'], 'isAdmin' => $rsp['isAdmin'],
+                         'exp' => (time() + JWT_EXPIRE));
+        $jwt = generate_jwt($headers, $payload, JWT_SECRET);
+        $rsp['token'] = $jwt;
+        return $rsp;
+    }
     public function execute($id, $method) {
         $rsp = null;
         $strErrorDesc = null;
         try {
+            $userModel = new UserModel();
             $m = strtoupper($method);
             if ($id == 'login' && $m == 'POST') {
                 $data = $this->getPostData();
                 if (!isset($data['email']) || !isset($data['password'])) {
                     $this->missedParameter();
                 }
-                $userModel = new UserModel();
-                $rsp = $userModel->getUserByEmail($data['email']);
-                if (!$rsp) {
-                    $this->notAuthorized();
+                $rsp = $this->login($userModel, $data['email'], $data['password']);
+            }
+            elseif ($id == 'register' && $m == 'POST') {
+                $linkModel = new LinkModel();
+                $linkModel->flushLinks();
+                $data = $this->getPostData();
+                $data['isEnabled'] = false;
+                $ursp = $userModel->addUser($data);
+                if ($ursp['res'] < 1) {
+                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
-                if (!password_verify($data['password'], $rsp['password'])) {
-                    $this->notAuthorized();
-                }
-                if (!$rsp['isEnabled']) {
-                    $this->forbidden();
-                }
-
-                unset($rsp['password']);
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
-                $payload = array('id' => $rsp['id'], 'isEnabled' => $rsp['isEnabled'], 'isManager' => $rsp['isManager'], 'isAdmin' => $rsp['isAdmin']);
-                $payload['exp'] = (time() + 60*60*4);
+                $payload = array('email' => $data['email'], 'type' => 'register', 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
+                $linkModel->addLink($jwt, $payload['exp']);
+                $rsp = array('token'=> $jwt);
+            }
+            elseif ($id == 'recover' && $m == 'POST') {
+                $linkModel = new LinkModel();
+                $linkModel->flushLinks();
+                $data = $this->getPostData();
+                $user = $userModel->getUserByEmail($data['email']);
+                if (!$user) {
+                    $this->notFound('Пользователь с таким адресом электронной почты не зарегистрирован');
+                }
+                $headers = array('alg'=>'HS256','typ'=>'JWT');
+                $payload = array('email' => $data['email'], 'type' => 'recover', 'exp' => (time() + JWT_EXPIRE));
+                $jwt = generate_jwt($headers, $payload, JWT_SECRET);
+                $linkModel->addLink($jwt, $payload['exp']);
                 $rsp['token'] = $jwt;
             }
             else  {

@@ -65,8 +65,16 @@ class BaseController
     {
         header_remove('Set-Cookie');
 
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        if (CORS_ALLOW) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+            if ($_SERVER["REQUEST_METHOD"] == 'OPTIONS') {
+                header("HTTP/1.1 200 OK");
+                exit(0);
+            }
+        }
 
         if (is_array($httpHeaders) && count($httpHeaders)) {
             foreach ($httpHeaders as $httpHeader) {
@@ -83,37 +91,37 @@ class BaseController
         return json_decode($data, true);
     }
 
-    public function notAuthorized()
+    public function notAuthorized($msg)
     {
-        $this->sendOutput(json_encode(array('error' => 'Not authenticated')),
+        $this->sendOutput(json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 401 Unauthorized')
         );
     }
 
-    public function forbidden()
+    public function forbidden($msg)
     {
-        $this->sendOutput(json_encode(array('error' => 'Not authorized')),
+        $this->sendOutput(json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 403 Forbidden')
         );
     }
 
     protected function notSupported()
     {
-        $this->sendOutput(json_encode(array('error' => 'Method not supported')),
+        $this->sendOutput(json_encode(array('message' => 'Method not supported')),
             array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
 
     protected function missedParameter()
     {
-        $this->sendOutput(json_encode(array('error' => 'Missed request parameter')),
+        $this->sendOutput(json_encode(array('message' => 'Missed request parameter')),
             array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
 
     protected function serverError($desc)
     {
-        $this->sendOutput(json_encode(array('error' => $desc)),
+        $this->sendOutput(json_encode(array('message' => $desc)),
         array('Content-Type: application/json', 'HTTP/1.1 500 Internal Server Error')
         );
     }
@@ -126,8 +134,20 @@ class BaseController
         );
     }
 
-    public function notFound() {
-        $this->sendOutput('', array('HTTP/1.1 404 Not Found'));
+    protected function notAdded($msg)
+    {
+        $this->sendOutput(
+            json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 409 Conflict')
+        );
+    }
+
+    protected function notFound($msg)
+    {
+        $this->sendOutput(
+            json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 404 Not Found')
+        );
     }
 
 }

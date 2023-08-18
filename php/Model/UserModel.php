@@ -116,5 +116,11 @@ class UserModel extends Database
         $res = $this->execute("DELETE FROM users WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
+
+    public function enableUserByEmail($email)
+    {
+        $res = $this->execute("UPDATE users SET isEnabled = 1 WHERE email = ?", 's', array($email));
+        return array("res" => $res );
+    }
 }
 ?>

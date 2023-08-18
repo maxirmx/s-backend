@@ -34,13 +34,20 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode( '/', $uri );
 
 if (!isset($uri[2])) {
-    $auth->notFound();
+    $auth->notFound('Не задан метод API');
 }
 
 $controller = null;
 $user = null;
 
-if ($uri[2] != 'auth') {
+if ($uri[2] == 'auth') {
+    $auth->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
+}
+elseif ($uri[2] == 'recover' || $uri[2] == 'register') {
+    $auth->processToken(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
+}
+else
+{
     $user = $auth->checkAuth();
     if ($uri[2] == 'orgs') {
         require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
@@ -50,14 +57,19 @@ if ($uri[2] != 'auth') {
         require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
         $controller = new UserController();
     }
+    elseif ($uri[2] == 'shipments') {
+        require PROJECT_ROOT_PATH . "/Controller/Api/ShipmentController.php";
+        $controller = new ShipmentController();
+    }
+    elseif ($uri[2] == 'statuses') {
+        require PROJECT_ROOT_PATH . "/Controller/Api/StatusController.php";
+        $controller = new StatusController();
+    }
     if (is_null($controller)) {
-        $auth->notFound();
+        $auth->notFound('Неизвестный метод API');
     }
     else {
         $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"], $user);
     }
-}
-else {
-    $auth->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
 }
 ?>

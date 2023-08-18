@@ -36,10 +36,13 @@ class OrgController extends BaseController
             $orgModel = new OrgModel();
             $m = strtoupper($method);
             if ($m != 'GET' && !$user->isAdmin) {
-                $this->forbidden();
+                $this->forbidden('Недостаточно прав для выполнения операции.');
             }
             if ($id == 'add' && $m == 'POST') {
                 $rsp = $orgModel->addOrg($this->getPostData());
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+                }
             }
             elseif ($id == null && $method == 'GET') {
                 $rsp = $orgModel->getOrgs();
@@ -49,6 +52,9 @@ class OrgController extends BaseController
             }
             elseif ($m == 'PUT') {
                 $rsp = $orgModel->updateOrg($id, $this->getPostData());
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+                }
             }
             elseif ($m == 'DELETE') {
                 $rsp = $orgModel->deleteOrg($id);
