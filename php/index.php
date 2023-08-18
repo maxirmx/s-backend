@@ -27,35 +27,52 @@
 */
 define("PROJECT_ROOT_PATH", __DIR__ );
 require PROJECT_ROOT_PATH . "/inc/bootstrap.php";
+require PROJECT_ROOT_PATH . "/Controller/Api/AuthController.php";
+
+$auth = new AuthController();
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode( '/', $uri );
 
 if (!isset($uri[2])) {
-    notFound();
+    $auth->notFound('Не задан метод API');
 }
 
-if ($uri[2] == 'orgs') {
-    require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
-    $controller = new OrgController();
-    $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
-}
-elseif ($uri[2] == 'users') {
-    require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
-    $controller = new UserController();
-    $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
-}
-else {
-    notFound();
-}
+$controller = null;
+$user = null;
 
-function notFound() {
-    header("HTTP/1.1 404 Not Found");
-    header('Access-Control-Allow-Headers: Origin, Content-Type, Accept, X-Auth-Token');
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Request-Headers: Origin, X-Custom-Header, X-Requested-With, Authorization, Content-Type, Accept');
-    header('Access-Control-Expose-Headers: Content-Length, X-Kuma-Revision');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    exit();
+if ($uri[2] == 'auth') {
+    $auth->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
+}
+elseif ($uri[2] == 'recover' || $uri[2] == 'register') {
+    $auth->processToken(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
+}
+else
+{
+    $user = $auth->checkAuth();
+    if ($uri[2] == 'orgs') {
+        require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
+        $controller = new OrgController();
+    }
+    elseif ($uri[2] == 'users') {
+        require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
+        $controller = new UserController();
+    }
+    elseif ($uri[2] == 'shipments') {
+        require PROJECT_ROOT_PATH . "/Controller/Api/ShipmentController.php";
+        $controller = new ShipmentController();
+    }
+    elseif ($uri[2] == 'statuses' || $uri[2] == 'history') {
+        require PROJECT_ROOT_PATH . "/Controller/Api/StatusController.php";
+        $controller = new StatusController();
+        if ($uri[2] == 'history') {
+            $controller->deliverHistory();
+        }
+    }
+    if (is_null($controller)) {
+        $auth->notFound('Неизвестный метод API');
+    }
+    else {
+        $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"], $user);
+    }
 }
 ?>

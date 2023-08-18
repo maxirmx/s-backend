@@ -25,40 +25,52 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
-require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/ShipmentModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/StatusModel.php";
 
-class OrgController extends BaseController
+class ShipmentController extends BaseController
 {
     public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
         try {
-            $orgModel = new OrgModel();
+            $shipmentModel = new ShipmentModel();
+            $statusModel = new StatusModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->addOrg($this->getPostData());
+                $this->fenceManager($user);
+                $data = $this->getPostData();
+                $rsp = $shipmentModel->addShipment($data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+                    $this->notAdded('Отправление с таким номером уже зарегистрировано.');
+                }
+                $rsp = $statusModel->addInitialStatus($data);
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Не удалось зарегистрировать начальный статус для отправления.');
                 }
             }
-            elseif ($id == null && $method == 'GET') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->getOrgs();
-            }
-            elseif ($m == 'GET') {
-                $rsp = $orgModel->getOrg($id);
-            }
-            elseif ($m == 'PUT') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->updateOrg($id, $this->getPostData());
-                if ($rsp['res'] < 1) {
-                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+            elseif ($method == 'GET') {
+                if ($id == null) {
+                    if ($user->isManager) {
+                    $rsp = $shipmentModel->getAllShipments();
+                    }
+                    else {
+                        $rsp = $shipmentModel->getFilteredShipments($user->id, $user->orgId);
+                    }
                 }
-            }
-            elseif ($m == 'DELETE') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->deleteOrg($id);
+                else {
+                    $rsp = $shipmentModel->getShipmentByNumber($id);
+                    if (!$rsp) {
+                        $this->notFound('Отправление с таким номером не найдено.');
+                    }
+
+                    if (!$user->isManager && !$this->checkUser($rsp, $user) && !$this->checkOrg($rsp, $user)) {
+                        $this->forbidden('Недостаточно прав для выполнения операции.');
+                    }
+
+                    unset($rsp['userId']);
+                    unset($rsp['orgId']);
+                }
             }
             else  {
                 $this->notSupported();

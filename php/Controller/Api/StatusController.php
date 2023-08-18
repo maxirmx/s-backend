@@ -25,40 +25,50 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
-require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/StatusModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/ShipmentModel.php";
 
-class OrgController extends BaseController
+class StatusController extends BaseController
 {
+    protected $dh = false;
+    public function deliverHistory() {
+        $this->dh = true;
+    }
     public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
         try {
-            $orgModel = new OrgModel();
+            $statusModel = new StatusModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->addOrg($this->getPostData());
-                if ($rsp['res'] < 1) {
-                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+                $this->fenceManager($user);
+                $rsp = $statusModel->addStatus($this->getPostData());
+            }
+            elseif ($id != null && $method == 'GET') {
+                $shipmentModel = new ShipmentModel();
+                if ($this->dh) {
+                    $rsp = $statusModel->getStatusesByNumber($id);
+                    $usr = $shipmentModel->getUserByNumber($id);
+                }
+                else {
+                    $rsp = $statusModel->getStatus($id);
+                    if ($rsp) {
+                        $usr = $shipmentModel->getUserByNumber($rsp['shipmentNumber']);
+                    }
+                }
+                if (!$usr) {
+                    $this->notFound('Отправление с таким номером не зарегистрировано.');
+                }
+                if (!$user->isManager && !$this->checkUser($usr, $user) && !$this->checkOrg($usr, $user)) {
+                    $this->forbidden('Недостаточно прав для выполнения операции.');
                 }
             }
-            elseif ($id == null && $method == 'GET') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->getOrgs();
-            }
-            elseif ($m == 'GET') {
-                $rsp = $orgModel->getOrg($id);
-            }
-            elseif ($m == 'PUT') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->updateOrg($id, $this->getPostData());
-                if ($rsp['res'] < 1) {
-                    $this->notAdded('Организация с таким названием уже зарегистрирована');
-                }
-            }
-            elseif ($m == 'DELETE') {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->deleteOrg($id);
+            elseif ($id != null && $method == 'PUT') {
+                $shipmentModel = new ShipmentModel();
+                $this->fenceManager($user);
+                $data = $this->getPostData();
+                $rsp = $statusModel->updateStatus($id, $data);
+                $shipmentModel->updateDDate($data);
             }
             else  {
                 $this->notSupported();
@@ -73,6 +83,5 @@ class OrgController extends BaseController
             $this->serverError($strErrorDesc);
         }
     }
-
 }
 ?>

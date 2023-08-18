@@ -29,14 +29,20 @@ require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 
 class UserController extends BaseController
 {
-    public function execute($id, $method) {
+    public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
         try {
             $userModel = new UserModel();
             $m = strtoupper($method);
+            if ($m != 'GET' && !$user->isAdmin && $id != $user->id) {
+                $this->forbidden('Недостаточно прав для выполнения операции.');
+            }
             if ($id == 'add' && $m == 'POST') {
                 $rsp = $userModel->addUser($this->getPostData());
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                }
             }
             elseif ($id == null && $method == 'GET') {
                 $rsp = $userModel->getUsers();
@@ -45,9 +51,18 @@ class UserController extends BaseController
                 $rsp = $userModel->getUser($id);
             }
             elseif ($m == 'PUT') {
-                $rsp = $userModel->updateUser($id, $this->getPostData());
+                if ($id==0) {
+                    $this->forbidden('Параметры этого пользователя нельзя изменить');
+                }
+                $rsp = $userModel->updateUser($id, $this->getPostData(), $user->isAdmin);
+                if ($rsp['res'] < 1) {
+                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                }
             }
             elseif ($m == 'DELETE') {
+                if ($id==0) {
+                    $this->forbidden('Этого пользователя нельзя удалить');
+                }
                 $rsp = $userModel->deleteUser($id);
             }
             else  {

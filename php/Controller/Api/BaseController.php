@@ -33,7 +33,7 @@ class BaseController
 */
     public function __call($name, $arguments)
     {
-        $this->sendOutput('', array('HTTP/1.1 404 Not Found'));
+        $this->notFound('Unknown method:' . $name);
     }
     /**
 * Get URI elements.
@@ -65,12 +65,16 @@ class BaseController
     {
         header_remove('Set-Cookie');
 
-        header('Access-Control-Allow-Headers: Origin, Content-Type, Content-Length, Accept, X-Auth-Token');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Request-Headers: Origin, X-Custom-Header, X-Requested-With, Authorization, Content-Type, Content-Length, Accept');
-        header('Access-Control-Expose-Headers: Content-Length, X-Kuma-Revision');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        if (CORS_ALLOW) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+            if ($_SERVER["REQUEST_METHOD"] == 'OPTIONS') {
+                header("HTTP/1.1 200 OK");
+                exit(0);
+            }
+        }
 
         if (is_array($httpHeaders) && count($httpHeaders)) {
             foreach ($httpHeaders as $httpHeader) {
@@ -81,22 +85,67 @@ class BaseController
         exit;
     }
 
+    protected function checkUser($data, $user) {
+        return  (isset($data['userId']) &&
+                 $data['userId'] >= 0   &&
+                 $data['userId'] == $user->id);
+    }
+
+    protected function checkOrg($data, $user) {
+        return  (isset($data['orgId']) &&
+                 $data['orgId'] >= 0   &&
+                 $data['orgId'] == $user->orgId);
+    }
+
+    protected function fenceAdmin($user) {
+        if (!$user->isAdmin) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
+    protected function fenceManager($user) {
+        if (!$user->isManager) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
     protected function getPostData()
     {
         $data = file_get_contents('php://input');
         return json_decode($data, true);
     }
 
+    public function notAuthorized($msg)
+    {
+        $this->sendOutput(json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 401 Unauthorized')
+        );
+    }
+
+    public function forbidden($msg)
+    {
+        $this->sendOutput(json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 403 Forbidden')
+        );
+    }
+
     protected function notSupported()
     {
-        $this->sendOutput(json_encode(array('error' => 'Method not supported')),
-            array('Content-Type: application/json', 'HTTP/1.1 422 Unprocessable Entity')
+        $this->sendOutput(json_encode(array('message' => 'Method not supported')),
+            array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
+        );
+    }
+
+    protected function missedParameter()
+    {
+        $this->sendOutput(json_encode(array('message' => 'Missed request parameter')),
+            array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
 
     protected function serverError($desc)
     {
-        $this->sendOutput(json_encode(array('error' => $desc)),
+        $this->sendOutput(json_encode(array('message' => $desc)),
         array('Content-Type: application/json', 'HTTP/1.1 500 Internal Server Error')
         );
     }
@@ -108,5 +157,22 @@ class BaseController
             array('Content-Type: application/json', 'HTTP/1.1 200 OK')
         );
     }
+
+    protected function notAdded($msg)
+    {
+        $this->sendOutput(
+            json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 409 Conflict')
+        );
+    }
+
+    protected function notFound($msg)
+    {
+        $this->sendOutput(
+            json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 404 Not Found')
+        );
+    }
+
 }
 ?>
