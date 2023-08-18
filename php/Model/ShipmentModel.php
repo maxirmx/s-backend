@@ -30,19 +30,60 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 
 class ShipmentModel extends Database
 {
+    protected const ALL_SHIPMENTS_REQ =
+    '   SELECT  shipments.id, shipments.number, shipments.ddate, shipments.dest,
+                most_recent_status.date, most_recent_status.location,
+                most_recent_status.status, most_recent_status.comment
+        FROM shipments
+        LEFT JOIN (
+            SELECT a.*
+            FROM statuses a
+            LEFT OUTER JOIN statuses b ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
+            WHERE b.shipmentNumber IS NULL)
+        AS most_recent_status
+        ON shipments.number = most_recent_status.shipmentNumber
+    ';
+
+    protected const FILTERED_SHIPMENTS_REQ =
+    '   SELECT shipments.id, shipments.number, shipments.ddate, shipments.dest,
+               most_recent_status.date, most_recent_status.location,
+               most_recent_status.status, most_recent_status.comment
+        FROM shipments
+        LEFT JOIN (
+            SELECT a.*
+            FROM statuses a
+            LEFT OUTER JOIN statuses b ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
+            WHERE b.shipmentNumber IS NULL)
+        AS most_recent_status
+        ON shipments.number = most_recent_status.shipmentNumber
+        WHERE shipments.userId = ? OR shipments.orgId = ?
+    ';
+
+    public function getFilteredShipments($userId, $orgId)
+    {
+        return $this->select(ShipmentModel::FILTERED_SHIPMENTS_REQ, 'ii', array($userId, $orgId));
+    }
+
+    public function getAllShipments()
+    {
+        return $this->select(ShipmentModel::ALL_SHIPMENTS_REQ);
+    }
+
     public function getShipments()
     {
         return $this->select("SELECT * FROM shipments ORDER BY id ASC");
     }
 
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImlzRW5hYmxlZCI6MSwiaXNNYW5hZ2VyIjoxLCJpc0FkbWluIjoxLCJleHAiOjE2OTIzNTcyMjl9.nBuUufbkAgAlKmFMRPu_ySVipsEty9gqs63LomPXHYw
-// curl --header "Content-Type: application/json" --verbose -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImlzRW5hYmxlZCI6MSwiaXNNYW5hZ2VyIjoxLCJpc0FkbWluIjoxLCJleHAiOjE2OTIzNTcyMjl9.nBuUufbkAgAlKmFMRPu_ySVipsEty9gqs63LomPXHYw" --data '{"number": "2234A1", "location":"Тикси, РФ", "ddate":"2023-08-14", "dest":"Hanga Roa, CL"}' --request POST https://tracker.sw.consulting/backend/shipments/add
-// curl --header "Content-Type: application/json" --verbose -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImlzRW5hYmxlZCI6MSwiaXNNYW5hZ2VyIjoxLCJpc0FkbWluIjoxLCJleHAiOjE2OTIzNTcyMjl9.nBuUufbkAgAlKmFMRPu_ySVipsEty9gqs63LomPXHYw" --data '{"status":6, "shipmentNumber": "2234A1", "location":"Лесосибирск, РФ", "date":"2023-07-15", "comment":"В Лесосибирске было страшно"}' --request POST https://tracker.sw.consulting/backend/statuses/add
-// curl --header "Content-Type: application/json" --verbose -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImlzRW5hYmxlZCI6MSwiaXNNYW5hZ2VyIjoxLCJpc0FkbWluIjoxLCJleHAiOjE2OTIzNTcyMjl9.nBuUufbkAgAlKmFMRPu_ySVipsEty9gqs63LomPXHYw" --data '{"number": "2274A4", "location":"Malmo, SE", "ddate":"2023-07-15", "date":"2023-06-22", "dest":"Лесосибирск, РФ", "comment":"Мальмё - дыра дырой"}' --request POST https://tracker.sw.consulting/backend/shipments/add
-public function addShipment($data)
+    public function addShipment($data)
     {
         $orgId = isset($data['orgId']) ? $data['orgId'] : -2;
+        if ($orgId == -1) {
+            $orgId = -2;
+        }
         $userId = isset($data['userId']) ? $data['userId'] : -2;
+        if ($userId == -1) {
+            $userId = -2;
+        }
         $res = $this->execute("INSERT INTO shipments (number, dest, ddate, userId, orgId) VALUES (?, ?, ?, ?, ?)", 'sssii',
                array($data['number'], $data['dest'], $data['ddate'], $userId, $orgId));
         return array("res" => $res );
@@ -78,5 +119,17 @@ FROM shipments
 LEFT JOIN statuses ON shipments.number = statuses.shipmentNumber
 LEFT JOIN users ON shipments.userId = users.id
 ORDER BY statuses.id DESC LIMIT 1
+
+
+SELECT shipments.id, shipments.number, shipments.ddate, shipments.dest, shipments.userId, shipments.orgId, most_recent_status.date, most_recent_status.location, most_recent_status.status, most_recent_status.comment
+FROM shipments
+LEFT JOIN (
+SELECT a.*
+FROM statuses a
+LEFT OUTER JOIN statuses b
+    ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
+WHERE b.shipmentNumber IS NULL) AS most_recent_status
+ON shipments.number = most_recent_status.shipmentNumber
+
 */
 ?>
