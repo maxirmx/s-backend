@@ -52,7 +52,7 @@ class ShipmentController extends BaseController
             elseif ($method == 'GET') {
                 if ($id == null) {
                     if ($user->isManager) {
-                    $rsp = $shipmentModel->getAllShipments();
+                        $rsp = $shipmentModel->getAllShipments();
                     }
                     else {
                         $rsp = $shipmentModel->getFilteredShipments($user->id, $user->orgId);

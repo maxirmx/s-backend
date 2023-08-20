@@ -46,37 +46,41 @@ class AuthController extends BaseController
         return $user;
     }
 
-    public function processToken($token, $method) {
-        $rsp = null;
-        $strErrorDesc = null;
-        try {
-            $userModel = new UserModel();
-            $m = strtoupper($method);
-            if (isset($token) && $m == 'GET') {
-                $data = is_jwt_valid($token, JWT_SECRET);
-                if (!$data || !$data->email) {
-                    $this->notAuthorized('Время действия ссылки истекло.');
-                }
-                if ($data->type == 'register' || $data->type == 'recover'){
-                    $userModel->enableUserByEmail($data->email);
-                    $rsp = $this->login($userModel, $data->email, null);
-                }
-                else  {
-                    $this->notSupported();
-                }
+    protected function preProcessToken($op) {
+        if ($op == 'register') {
+            $g = 'для регистрации';
+        }
+        elseif ($op == 'recover') {
+            $g = 'для восстановления пароля';
+        }
+        else {
+            $g = '';
+        }
+        $data = $this->getPostData();
+        $jwt = $data['jwt'];
+        if (!$jwt) {
+            $this->notFound("Ссылка $g не найдена.");
+        }
+        $linkModel = new LinkModel();
+        $res = $linkModel->deleteLink($jwt);
+        if ($res['res']<= 0) {
+            $this->notFound("Ссылка $g не найдена. Вероятно, её уже использовали.");
+        }
+        $user = is_jwt_valid($jwt, JWT_SECRET);
+        if ($user->type != $op) {
+            $this->forbidden("Некорректная ссылка $g.");
+        }
+        if (!$user) {
+            $m = "Время действия ссылки $g истекло.";
+            if ($op == 'register') {
+                $m .= " Ваша регистрация может быть завершена администратором.";
             }
-            else  {
-                $this->notSupported();
+            elseif ($op == 'recover') {
+                $m .= " Попробуйте восстановить пароль ещё раз.";
             }
+            $this->forbidden($m);
         }
-        catch (Error $e) {
-            $strErrorDesc = $e->getMessage();
-        }
-        if (!$strErrorDesc) {
-            $this->ok($rsp);
-        } else {
-            $this->serverError($strErrorDesc);
-        }
+        return $user;
     }
 
     protected function login($uModel, $email, $password)
@@ -101,6 +105,21 @@ class AuthController extends BaseController
         $rsp['token'] = $jwt;
         return $rsp;
     }
+
+    protected function url4SendLink($jwt, $host, $method) {
+        if (!$host) {
+            $host = "http".(!empty($_SERVER['HTTPS'])?"s":"")."://".$_SERVER['SERVER_NAME'];
+        }
+        $url = $host.'/'.$method.'/'.$jwt;
+        return $url;
+    }
+    protected function sendLink($to, $subject, $message) {
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= 'From: <no-reply@sw.consulting>' . "\r\n";
+        mail($to,$subject,$message,$headers);
+    }
+
     public function execute($id, $method) {
         $rsp = null;
         $strErrorDesc = null;
@@ -117,8 +136,13 @@ class AuthController extends BaseController
             elseif ($id == 'register' && $m == 'POST') {
                 $linkModel = new LinkModel();
                 $linkModel->flushLinks();
+
                 $data = $this->getPostData();
                 $data['isEnabled'] = false;
+                $data['isManager'] = false;
+                $data['isAdmin'] = false;
+                $data['orgId'] = -1;
+
                 $ursp = $userModel->addUser($data);
                 if ($ursp['res'] < 1) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
@@ -127,7 +151,18 @@ class AuthController extends BaseController
                 $payload = array('email' => $data['email'], 'type' => 'register', 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
                 $linkModel->addLink($jwt, $payload['exp']);
-                $rsp = array('token'=> $jwt);
+                $rsp = array('res'=> 'ok');
+
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, 'register');
+                $subject = 'Регистрация в системе отслеживания отправлений ООО "Карго Менеджемент"';
+                $message = "Добрый день ! <br/><br/>
+                Для завершения регистрации в системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
+                по ссылке <a href='$url'>$url</a><br/>
+                Обратите внимание, что ссылка действительна в течение 4 часов и является одноразовой.<br/>
+                Если Вы не запрашивали регистрацию, просто проигнорируйте это письмо.<br/><br/>
+                Спасибо, что Вы с нами !<br/>";
+
+                $this->sendLink($data['email'], $subject, $message);
             }
             elseif ($id == 'recover' && $m == 'POST') {
                 $linkModel = new LinkModel();
@@ -141,7 +176,29 @@ class AuthController extends BaseController
                 $payload = array('email' => $data['email'], 'type' => 'recover', 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
                 $linkModel->addLink($jwt, $payload['exp']);
-                $rsp['token'] = $jwt;
+                $rsp = array('res'=> 'ok');
+
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, 'recover');
+                $subject = 'Восстановление пароля к системе отслеживания отправлений ООО "Карго Менеджемент"';
+                $message = "Добрый день ! <br/><br/>
+                Для восстановления пароля к системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
+                по ссылке <a href='$url'>$url</a><br/>
+                Обратите внимание, что ссылка действительна в течение 4 часов и является одноразовой.<br/>
+                Если Вы не запрашивали восстановления пароля, просто проигнорируйте это письмо.<br/><br/>
+                Спасибо, что Вы с нами !<br/>";
+
+                $this->sendLink($data['email'], $subject, $message);
+            }
+            elseif ($id == 'register' && $m == 'PUT') {
+                $user = $this->preProcessToken($id);
+                $userModel = new UserModel();
+                $userModel->enableUserByEmail($user->email);
+                $rsp = $this->login($userModel, $user->email, null);
+            }
+            elseif ($id == 'recover' && $m == 'PUT') {
+                $user = $this->preProcessToken($id);
+                $userModel = new UserModel();
+                $rsp = $this->login($userModel, $user->email, null);
             }
             else  {
                 $this->notSupported();

@@ -35,31 +35,41 @@ class UserController extends BaseController
         try {
             $userModel = new UserModel();
             $m = strtoupper($method);
-            if ($m != 'GET' && !$user->isAdmin && $id != $user->id) {
-                $this->forbidden('Недостаточно прав для выполнения операции.');
-            }
             if ($id == 'add' && $m == 'POST') {
-                $rsp = $userModel->addUser($this->getPostData());
+                $data = $this->getPostData();
+                if (!$user->isAdmin) {
+                   $data['isEnabled'] = false;
+                   $data['isManager'] = false;
+                   $data['isAdmin'] = false;
+                   $data['orgId'] = -1;
+                }
+                $rsp = $userModel->addUser($data);
                 if ($rsp['res'] < 1) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
             }
             elseif ($id == null && $method == 'GET') {
+                $this->fenceAdmin($user);
                 $rsp = $userModel->getUsers();
             }
             elseif ($m == 'GET') {
+                $this->fenceAdminOrSameUser($id, $user);
                 $rsp = $userModel->getUser($id);
             }
             elseif ($m == 'PUT') {
                 if ($id==0) {
-                    $this->forbidden('Параметры этого пользователя нельзя изменить');
+                    $this->forbidden('Настройки этого пользователя нельзя изменить');
                 }
-                $rsp = $userModel->updateUser($id, $this->getPostData(), $user->isAdmin);
-                if ($rsp['res'] < 1) {
+                $this->fenceAdminOrSameUser($id, $user);
+		$data = $this->getPostData();
+		$usr = $userModel->getUserByEmail($data['email']);
+                if ($usr && $usr['id'] != $id) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
+                $rsp = $userModel->updateUser($id, $data, $user->isAdmin);
             }
             elseif ($m == 'DELETE') {
+                $this->fenceAdmin($user);
                 if ($id==0) {
                     $this->forbidden('Этого пользователя нельзя удалить');
                 }
