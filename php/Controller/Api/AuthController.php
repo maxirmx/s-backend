@@ -46,37 +46,22 @@ class AuthController extends BaseController
         return $user;
     }
 
-    public function processToken($token, $method) {
-        $rsp = null;
-        $strErrorDesc = null;
-        try {
-            $userModel = new UserModel();
-            $m = strtoupper($method);
-            if (isset($token) && $m == 'GET') {
-                $data = is_jwt_valid($token, JWT_SECRET);
-                if (!$data || !$data->email) {
-                    $this->notAuthorized('Время действия ссылки истекло.');
-                }
-                if ($data->type == 'register' || $data->type == 'recover'){
-                    $userModel->enableUserByEmail($data->email);
-                    $rsp = $this->login($userModel, $data->email, null);
-                }
-                else  {
-                    $this->notSupported();
-                }
-            }
-            else  {
-                $this->notSupported();
-            }
+    protected function preProcessToken($g) {
+        $data = $this->getPostData();
+        $jwt = $data['jwt'];
+        if (!$jwt) {
+            $this->notFound("Ссылка $g не найдена.");
         }
-        catch (Error $e) {
-            $strErrorDesc = $e->getMessage();
+        $linkModel = new LinkModel();
+        $res = $linkModel->deleteLink($jwt);
+        if ($res['res']<= 0) {
+            $this->notFound("Ссылка $g не найдена. Вероятно, её уже использовали.");
         }
-        if (!$strErrorDesc) {
-            $this->ok($rsp);
-        } else {
-            $this->serverError($strErrorDesc);
+        $user = is_jwt_valid($jwt, JWT_SECRET);
+        if (!$user) {
+            $this->forbidden('Время действия ссылки истекло.');
         }
+        return $user;
     }
 
     protected function login($uModel, $email, $password)
@@ -102,11 +87,11 @@ class AuthController extends BaseController
         return $rsp;
     }
 
-    protected function url4SendLink($jwt, $host) {
+    protected function url4SendLink($jwt, $host, $method) {
         if (!$host) {
             $host = "http".(!empty($_SERVER['HTTPS'])?"s":"")."://".$_SERVER['SERVER_NAME'];
         }
-        $url = $host.'/'.'login/'.$jwt;
+        $url = $host.'/'.$method.'/'.$jwt;
         return $url;
     }
     protected function sendLink($to, $subject, $message) {
@@ -144,7 +129,7 @@ class AuthController extends BaseController
                 $linkModel->addLink($jwt, $payload['exp']);
                 $rsp = array('res'=> 'ok');
 
-                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null);
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, 'register');
                 $subject = 'Регистрация в системе отслеживания отправлений ООО "Карго Менеджемент"';
                 $message = "Добрый день ! <br/><br/>
                 Для завершения регистрации в системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
@@ -169,7 +154,7 @@ class AuthController extends BaseController
                 $linkModel->addLink($jwt, $payload['exp']);
                 $rsp = array('res'=> 'ok');
 
-                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null);
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, 'recover');
                 $subject = 'Восстановление пароля к системе отслеживания отправлений ООО "Карго Менеджемент"';
                 $message = "Добрый день ! <br/><br/>
                 Для восстановления пароля к системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
@@ -179,6 +164,15 @@ class AuthController extends BaseController
                 Спасибо, что Вы с нами !<br/>";
 
                 $this->sendLink($data['email'], $subject, $message);
+            }
+            elseif ($id == 'register' && $m == 'PUT') {
+                $user = $this->preProcessToken('для регистрации');
+                return $this->ok(array('res' => 'ok', 'token' => $user));
+            }
+            elseif ($id == 'recover' && $m == 'PUT') {
+                $user = $this->preProcessToken('для восстановления пароля');
+                $userModel = new UserModel();
+                $rsp = $this->login($userModel, $user->email, null);
             }
             else  {
                 $this->notSupported();

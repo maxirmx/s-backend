@@ -34,17 +34,17 @@ function generate_jwt($headers, $payload, $secret = 'secret') {
 
 	$payload_encoded = base64url_encode(json_encode($payload));
 
-	$signature = hash_hmac('SHA256', "$headers_encoded.$payload_encoded", $secret, true);
+	$signature = hash_hmac('SHA256', "$headers_encoded\$$payload_encoded", $secret, true);
 	$signature_encoded = base64url_encode($signature);
 
-	$jwt = "$headers_encoded.$payload_encoded.$signature_encoded";
+	$jwt = "$headers_encoded\$$payload_encoded\$$signature_encoded";
 
 	return $jwt;
 }
 
 function is_jwt_valid($jwt, $secret = 'secret') {
 	// split the jwt
-	$tokenParts = explode('.', $jwt);
+	$tokenParts = explode('$', $jwt);
 	if (count($tokenParts) != 3) {
 		return null;
 	}
@@ -59,7 +59,7 @@ function is_jwt_valid($jwt, $secret = 'secret') {
 	// build a signature based on the header and payload using the secret
 	$base64_url_header = base64url_encode($header);
 	$base64_url_payload = base64url_encode($payload);
-	$signature = hash_hmac('SHA256', $base64_url_header . "." . $base64_url_payload, $secret, true);
+	$signature = hash_hmac('SHA256', $base64_url_header . "\$" . $base64_url_payload, $secret, true);
 	$base64_url_signature = base64url_encode($signature);
 
 	// verify it matches the signature provided in the jwt

@@ -39,13 +39,15 @@ class StatusController extends BaseController
         $strErrorDesc = null;
         try {
             $statusModel = new StatusModel();
+            $shipmentModel = new ShipmentModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
                 $this->fenceManager($user);
-                $rsp = $statusModel->addStatus($this->getPostData());
+                $data = $this->getPostData();
+                $rsp = $statusModel->addStatus($data);
+                $shipmentModel->updateDDate($data);
             }
             elseif ($id != null && $method == 'GET') {
-                $shipmentModel = new ShipmentModel();
                 if ($this->dh) {
                     $rsp = $statusModel->getStatusesByNumber($id);
                     $usr = $shipmentModel->getUserByNumber($id);
@@ -64,7 +66,6 @@ class StatusController extends BaseController
                 }
             }
             elseif ($id != null && $method == 'PUT') {
-                $shipmentModel = new ShipmentModel();
                 $this->fenceManager($user);
                 $data = $this->getPostData();
                 $rsp = $statusModel->updateStatus($id, $data);

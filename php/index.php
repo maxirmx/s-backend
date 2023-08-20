@@ -30,49 +30,53 @@ require PROJECT_ROOT_PATH . "/inc/bootstrap.php";
 require PROJECT_ROOT_PATH . "/Controller/Api/AuthController.php";
 
 $auth = new AuthController();
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uri = explode( '/', $uri );
+try {
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $uri = explode( '/', $uri );
 
-if (!isset($uri[2])) {
-    $auth->notFound('Не задан метод API');
-}
+    if (!isset($uri[2])) {
+        $auth->notFound('Не задан метод API');
+    }
 
-$controller = null;
-$user = null;
+    $controller = null;
+    $user = null;
 
-if ($uri[2] == 'auth') {
-    $auth->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
-}
-elseif ($uri[2] == 'recover' || $uri[2] == 'register') {
-    $auth->processToken(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
-}
-else
-{
-    $user = $auth->checkAuth();
-    if ($uri[2] == 'orgs') {
-        require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
-        $controller = new OrgController();
+    if ($uri[2] == 'auth') {
+        $auth->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"]);
     }
-    elseif ($uri[2] == 'users') {
-        require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
-        $controller = new UserController();
-    }
-    elseif ($uri[2] == 'shipments') {
-        require PROJECT_ROOT_PATH . "/Controller/Api/ShipmentController.php";
-        $controller = new ShipmentController();
-    }
-    elseif ($uri[2] == 'statuses' || $uri[2] == 'history') {
-        require PROJECT_ROOT_PATH . "/Controller/Api/StatusController.php";
-        $controller = new StatusController();
-        if ($uri[2] == 'history') {
-            $controller->deliverHistory();
+    else
+    {
+        $user = $auth->checkAuth();
+        if ($uri[2] == 'orgs') {
+            require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
+            $controller = new OrgController();
+        }
+        elseif ($uri[2] == 'users') {
+            require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
+            $controller = new UserController();
+        }
+        elseif ($uri[2] == 'shipments') {
+            require PROJECT_ROOT_PATH . "/Controller/Api/ShipmentController.php";
+            $controller = new ShipmentController();
+        }
+        elseif ($uri[2] == 'statuses' || $uri[2] == 'history') {
+            require PROJECT_ROOT_PATH . "/Controller/Api/StatusController.php";
+            $controller = new StatusController();
+            if ($uri[2] == 'history') {
+                $controller->deliverHistory();
+            }
+        }
+        if (is_null($controller)) {
+            $auth->notFound('Неизвестный метод API');
+        }
+        else {
+            $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"], $user);
         }
     }
-    if (is_null($controller)) {
-        $auth->notFound('Неизвестный метод API');
-    }
-    else {
-        $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"], $user);
-    }
+
 }
+catch (Exception $e) {
+    $auth->serverError($e->getMessage());
+}
+$auth->serverError('Запрос не был обработан по непонятной причине.');
 ?>
