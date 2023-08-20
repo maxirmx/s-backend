@@ -49,7 +49,7 @@ class UserController extends BaseController
                 }
             }
             elseif ($id == null && $method == 'GET') {
-                $this->fenceAdmin($user);
+                $this->fenceManager($user);
                 $rsp = $userModel->getUsers();
             }
             elseif ($m == 'GET') {
