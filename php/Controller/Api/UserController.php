@@ -43,7 +43,7 @@ class UserController extends BaseController
                    $data['isAdmin'] = false;
                    $data['orgId'] = -1;
                 }
-                $rsp = $userModel->addUser($this->getPostData());
+                $rsp = $userModel->addUser($data);
                 if ($rsp['res'] < 1) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
@@ -58,13 +58,15 @@ class UserController extends BaseController
             }
             elseif ($m == 'PUT') {
                 if ($id==0) {
-                    $this->forbidden('Параметры этого пользователя нельзя изменить');
+                    $this->forbidden('Настройки этого пользователя нельзя изменить');
                 }
                 $this->fenceAdminOrSameUser($id, $user);
-                $rsp = $userModel->updateUser($id, $this->getPostData(), $user->isAdmin);
-                if ($rsp['res'] < 1) {
+		$data = $this->getPostData();
+		$usr = $userModel->getUserByEmail($data['email']);
+                if ($usr && $usr['id'] != $id) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
+                $rsp = $userModel->updateUser($id, $data, $user->isAdmin);
             }
             elseif ($m == 'DELETE') {
                 $this->fenceAdmin($user);

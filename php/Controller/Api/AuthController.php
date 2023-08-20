@@ -46,7 +46,16 @@ class AuthController extends BaseController
         return $user;
     }
 
-    protected function preProcessToken($g) {
+    protected function preProcessToken($op) {
+        if ($op == 'register') {
+            $g = 'для регистрации';
+        }
+        elseif ($op == 'recover') {
+            $g = 'для восстановления пароля';
+        }
+        else {
+            $g = '';
+        }
         $data = $this->getPostData();
         $jwt = $data['jwt'];
         if (!$jwt) {
@@ -58,8 +67,18 @@ class AuthController extends BaseController
             $this->notFound("Ссылка $g не найдена. Вероятно, её уже использовали.");
         }
         $user = is_jwt_valid($jwt, JWT_SECRET);
+        if ($user->type != $op) {
+            $this->forbidden("Некорректная ссылка $g.");
+        }
         if (!$user) {
-            $this->forbidden('Время действия ссылки истекло.');
+            $m = "Время действия ссылки $g истекло.";
+            if ($op == 'register') {
+                $m .= " Ваша регистрация может быть завершена администратором.";
+            }
+            elseif ($op == 'recover') {
+                $m .= " Попробуйте восстановить пароль ещё раз.";
+            }
+            $this->forbidden($m);
         }
         return $user;
     }
@@ -117,8 +136,13 @@ class AuthController extends BaseController
             elseif ($id == 'register' && $m == 'POST') {
                 $linkModel = new LinkModel();
                 $linkModel->flushLinks();
+
                 $data = $this->getPostData();
                 $data['isEnabled'] = false;
+                $data['isManager'] = false;
+                $data['isAdmin'] = false;
+                $data['orgId'] = -1;
+
                 $ursp = $userModel->addUser($data);
                 if ($ursp['res'] < 1) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
@@ -166,11 +190,13 @@ class AuthController extends BaseController
                 $this->sendLink($data['email'], $subject, $message);
             }
             elseif ($id == 'register' && $m == 'PUT') {
-                $user = $this->preProcessToken('для регистрации');
-                return $this->ok(array('res' => 'ok', 'token' => $user));
+                $user = $this->preProcessToken($id);
+                $userModel = new UserModel();
+                $userModel->enableUserByEmail($user->email);
+                $rsp = $this->login($userModel, $user->email, null);
             }
             elseif ($id == 'recover' && $m == 'PUT') {
-                $user = $this->preProcessToken('для восстановления пароля');
+                $user = $this->preProcessToken($id);
                 $userModel = new UserModel();
                 $rsp = $this->login($userModel, $user->email, null);
             }
