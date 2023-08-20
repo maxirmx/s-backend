@@ -101,6 +101,21 @@ class AuthController extends BaseController
         $rsp['token'] = $jwt;
         return $rsp;
     }
+
+    protected function url4SendLink($jwt, $host) {
+        if (!$host) {
+            $host = "http".(!empty($_SERVER['HTTPS'])?"s":"")."://".$_SERVER['SERVER_NAME'];
+        }
+        $url = $host.'/'.'login/'.$jwt;
+        return $url;
+    }
+    protected function sendLink($to, $subject, $message) {
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= 'From: <no-reply@sw.consulting>' . "\r\n";
+        mail($to,$subject,$message,$headers);
+    }
+
     public function execute($id, $method) {
         $rsp = null;
         $strErrorDesc = null;
@@ -127,7 +142,18 @@ class AuthController extends BaseController
                 $payload = array('email' => $data['email'], 'type' => 'register', 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
                 $linkModel->addLink($jwt, $payload['exp']);
-                $rsp = array('token'=> $jwt);
+                $rsp = array('res'=> 'ok');
+
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null);
+                $subject = 'Регистрация в системе отслеживания отправлений ООО "Карго Менеджемент"';
+                $message = "Добрый день ! <br/><br/>
+                Для завершения регистрации в системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
+                по ссылке <a href='$url'>$url</a><br/>
+                Обратите внимание, что ссылка действительна в течение 4 часов и является одноразовой.<br/>
+                Если Вы не запрашивали регистрацию, просто проигнорируйте это письмо.<br/><br/>
+                Спасибо, что Вы с нами !<br/>";
+
+                $this->sendLink($data['email'], $subject, $message);
             }
             elseif ($id == 'recover' && $m == 'POST') {
                 $linkModel = new LinkModel();
@@ -141,7 +167,18 @@ class AuthController extends BaseController
                 $payload = array('email' => $data['email'], 'type' => 'recover', 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
                 $linkModel->addLink($jwt, $payload['exp']);
-                $rsp['token'] = $jwt;
+                $rsp = array('res'=> 'ok');
+
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null);
+                $subject = 'Восстановление пароля к системе отслеживания отправлений ООО "Карго Менеджемент"';
+                $message = "Добрый день ! <br/><br/>
+                Для восстановления пароля к системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
+                по ссылке <a href='$url'>$url</a><br/>
+                Обратите внимание, что ссылка действительна в течение 4 часов и является одноразовой.<br/>
+                Если Вы не запрашивали восстановления пароля, просто проигнорируйте это письмо.<br/><br/>
+                Спасибо, что Вы с нами !<br/>";
+
+                $this->sendLink($data['email'], $subject, $message);
             }
             else  {
                 $this->notSupported();

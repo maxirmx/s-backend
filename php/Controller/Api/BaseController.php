@@ -109,6 +109,18 @@ class BaseController
         }
     }
 
+    protected function fenceAdminOrSameOrg($orgId, $user) {
+        if (!$user->isAdmin && $user->orgId != $orgId) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
+    protected function fenceAdminOrSameUser($userId, $user) {
+        if (!$user->isAdmin && $user->id != $userId) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
     protected function getPostData()
     {
         $data = file_get_contents('php://input');
