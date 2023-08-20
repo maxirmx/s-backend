@@ -43,7 +43,7 @@ class OrgController extends BaseController
                 }
             }
             elseif ($id == null && $method == 'GET') {
-                $this->fenceAdmin($user);
+                $this->fenceManager($user);
                 $rsp = $orgModel->getOrgs();
             }
             elseif ($m == 'GET') {

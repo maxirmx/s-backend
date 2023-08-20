@@ -110,7 +110,7 @@ class AuthController extends BaseController
         if (!$host) {
             $host = "http".(!empty($_SERVER['HTTPS'])?"s":"")."://".$_SERVER['SERVER_NAME'];
         }
-        $url = $host.'/'.$method.'/'.$jwt;
+        $url = $host.'/?'.$method.'='.$jwt;
         return $url;
     }
     protected function sendLink($to, $subject, $message) {
