@@ -67,7 +67,8 @@ class AuthController extends BaseController
             $this->notFound("Ссылка $g не найдена. Вероятно, её уже использовали.");
         }
         $user = is_jwt_valid($jwt, JWT_SECRET);
-        if ($user->type != $op) {
+
+        if (!$user || $user->type != $op) {
             $this->forbidden("Некорректная ссылка $g.");
         }
         if (!$user) {
@@ -116,7 +117,7 @@ class AuthController extends BaseController
     protected function sendLink($to, $subject, $message) {
         $headers = "MIME-Version: 1.0" . "\r\n";
         $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-        $headers .= 'From: <no-reply@sw.consulting>' . "\r\n";
+        $headers .= 'From: ' . SERVICE_EMAIL . "\r\n";
         mail($to,$subject,$message,$headers);
     }
 
@@ -148,12 +149,12 @@ class AuthController extends BaseController
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
-                $payload = array('email' => $data['email'], 'type' => 'register', 'exp' => (time() + JWT_EXPIRE));
+                $payload = array('email' => $data['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
                 $linkModel->addLink($jwt, $payload['exp']);
                 $rsp = array('res'=> 'ok');
 
-                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, 'register');
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, $id);
                 $subject = 'Регистрация в системе отслеживания отправлений ООО "Карго Менеджемент"';
                 $message = "Добрый день ! <br/><br/>
                 Для завершения регистрации в системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите
@@ -173,12 +174,12 @@ class AuthController extends BaseController
                     $this->notFound('Пользователь с таким адресом электронной почты не зарегистрирован');
                 }
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
-                $payload = array('email' => $data['email'], 'type' => 'recover', 'exp' => (time() + JWT_EXPIRE));
+                $payload = array('email' => $user['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
                 $linkModel->addLink($jwt, $payload['exp']);
-                $rsp = array('res'=> 'ok');
+                $rsp = is_jwt_valid($jwt, JWT_SECRET); //array('res'=> 'ok');
 
-                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, 'recover');
+                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, $id);
                 $subject = 'Восстановление пароля к системе отслеживания отправлений ООО "Карго Менеджемент"';
                 $message = "Добрый день ! <br/><br/>
                 Для восстановления пароля к системе отслеживания отправлений ООО \"Карго Менеджемент\" перейдите

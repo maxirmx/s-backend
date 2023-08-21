@@ -25,6 +25,7 @@
 *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 */
+
 define("PROJECT_ROOT_PATH", __DIR__ );
 require PROJECT_ROOT_PATH . "/inc/bootstrap.php";
 require PROJECT_ROOT_PATH . "/Controller/Api/AuthController.php";
@@ -76,7 +77,7 @@ try {
 
 }
 catch (Exception $e) {
-    $auth->serverError($e->getMessage());
+    echo $e->getMessage() .'/n';
 }
-$auth->serverError('Запрос не был обработан по непонятной причине.');
+echo 'Запрос не был обработан по непонятной причине.';
 ?>
