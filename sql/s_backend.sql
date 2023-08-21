@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1
+-- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
--- Хост: swc3778270.mysql
--- Время создания: Авг 21 2023 г., 15:32
--- Версия сервера: 8.0.22-13
--- Версия PHP: 7.4.20
+-- Хост: localhost
+-- Время создания: Авг 21 2023 г., 22:56
+-- Версия сервера: 5.6.43-84.3-log
+-- Версия PHP: 8.0.27
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- База данных: `swc3778270_tracker`
+-- База данных: `postavkivs_track`
 --
 
 -- --------------------------------------------------------
@@ -26,14 +26,11 @@ SET time_zone = "+00:00";
 --
 -- Структура таблицы `links`
 --
--- Создание: Авг 21 2023 г., 15:12
---
 
-DROP TABLE IF EXISTS `links`;
 CREATE TABLE `links` (
-  `id` int NOT NULL,
-  `link` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_520_ci NOT NULL,
-  `expire` int NOT NULL
+  `id` int(11) NOT NULL,
+  `link` varchar(256) COLLATE utf8_unicode_520_ci NOT NULL,
+  `expire` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_520_ci;
 
 -- --------------------------------------------------------
@@ -41,13 +38,9 @@ CREATE TABLE `links` (
 --
 -- Структура таблицы `organizations`
 --
--- Создание: Авг 21 2023 г., 15:10
--- Последнее обновление: Авг 18 2023 г., 16:47
---
 
-DROP TABLE IF EXISTS `organizations`;
 CREATE TABLE `organizations` (
-  `id` int NOT NULL,
+  `id` int(11) NOT NULL,
   `name` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_520_ci;
 
@@ -56,18 +49,14 @@ CREATE TABLE `organizations` (
 --
 -- Структура таблицы `shipments`
 --
--- Создание: Авг 21 2023 г., 15:10
--- Последнее обновление: Авг 20 2023 г., 16:23
---
 
-DROP TABLE IF EXISTS `shipments`;
 CREATE TABLE `shipments` (
-  `id` int NOT NULL,
+  `id` int(11) NOT NULL,
   `number` varchar(16) COLLATE utf8_unicode_520_ci NOT NULL,
   `dest` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
   `ddate` date NOT NULL,
-  `userId` int NOT NULL DEFAULT '-2',
-  `orgId` int NOT NULL DEFAULT '-2'
+  `userId` int(11) NOT NULL DEFAULT '-2',
+  `orgId` int(11) NOT NULL DEFAULT '-2'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_520_ci;
 
 -- --------------------------------------------------------
@@ -75,18 +64,14 @@ CREATE TABLE `shipments` (
 --
 -- Структура таблицы `statuses`
 --
--- Создание: Авг 21 2023 г., 15:10
--- Последнее обновление: Авг 20 2023 г., 16:23
---
 
-DROP TABLE IF EXISTS `statuses`;
 CREATE TABLE `statuses` (
-  `id` int NOT NULL,
+  `id` int(11) NOT NULL,
   `shipmentNumber` varchar(16) COLLATE utf8_unicode_520_ci NOT NULL,
-  `status` int NOT NULL,
+  `status` int(11) NOT NULL,
   `date` date NOT NULL,
-  `location` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_520_ci NOT NULL,
-  `comment` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_520_ci NOT NULL
+  `location` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
+  `comment` varchar(128) COLLATE utf8_unicode_520_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_520_ci;
 
 -- --------------------------------------------------------
@@ -94,18 +79,14 @@ CREATE TABLE `statuses` (
 --
 -- Структура таблицы `users`
 --
--- Создание: Авг 21 2023 г., 15:10
--- Последнее обновление: Авг 20 2023 г., 16:19
---
 
-DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
-  `id` int NOT NULL,
-  `firstName` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_520_ci NOT NULL,
-  `lastName` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_520_ci NOT NULL,
+  `id` int(11) NOT NULL,
+  `firstName` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
+  `lastName` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
   `patronimic` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
   `email` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
-  `orgId` int NOT NULL,
+  `orgId` int(11) NOT NULL,
   `password` varchar(64) COLLATE utf8_unicode_520_ci NOT NULL,
   `isEnabled` tinyint(1) NOT NULL,
   `isManager` tinyint(1) NOT NULL,
@@ -117,23 +98,25 @@ CREATE TABLE `users` (
 --
 -- Структура таблицы `versions`
 --
--- Создание: Авг 21 2023 г., 15:11
--- Последнее обновление: Авг 21 2023 г., 15:31
---
 
-DROP TABLE IF EXISTS `versions`;
 CREATE TABLE `versions` (
-  `id` int NOT NULL,
+  `id` int(11) NOT NULL,
   `version` varchar(16) COLLATE utf8_unicode_520_ci NOT NULL,
   `date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_520_ci;
 
 --
+-- Очистить таблицу перед добавлением данных `versions`
+--
+
+TRUNCATE TABLE `versions`;
+--
 -- Дамп данных таблицы `versions`
 --
 
 INSERT INTO `versions` (`id`, `version`, `date`) VALUES
-(1, '0.1.3', '2023-08-21');
+(1, '0.1.3', '2023-08-21'),
+(3, '0.1.3.1', '2023-08-21');
 
 --
 -- Индексы сохранённых таблиц
@@ -191,37 +174,37 @@ ALTER TABLE `versions`
 -- AUTO_INCREMENT для таблицы `links`
 --
 ALTER TABLE `links`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `organizations`
 --
 ALTER TABLE `organizations`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `shipments`
 --
 ALTER TABLE `shipments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `statuses`
 --
 ALTER TABLE `statuses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `versions`
 --
 ALTER TABLE `versions`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
