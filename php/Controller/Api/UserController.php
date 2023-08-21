@@ -61,8 +61,8 @@ class UserController extends BaseController
                     $this->forbidden('Настройки этого пользователя нельзя изменить');
                 }
                 $this->fenceAdminOrSameUser($id, $user);
-		$data = $this->getPostData();
-		$usr = $userModel->getUserByEmail($data['email']);
+		        $data = $this->getPostData();
+		        $usr = $userModel->getUserByEmail($data['email']);
                 if ($usr && $usr['id'] != $id) {
                     $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
