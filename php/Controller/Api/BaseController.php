@@ -103,6 +103,18 @@ class BaseController
         }
     }
 
+    protected function fenceManagerOrAdmin($user) {
+        if (!$user->isManager && !$user->isAdmin) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
+    protected function fenceManagerAndAdmin($user) {
+        if (!$user->isManager || !$user->isAdmin) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
     protected function fenceManager($user) {
         if (!$user->isManager) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
@@ -111,6 +123,12 @@ class BaseController
 
     protected function fenceAdminOrSameOrg($orgId, $user) {
         if (!$user->isAdmin && $user->orgId != $orgId) {
+            $this->forbidden('Недостаточно прав для выполнения операции.');
+        }
+    }
+
+    protected function fenceManagerOrAdminOrSameOrg($orgId, $user) {
+        if (!$user->isAdmin && !$user->isManager && $user->orgId != $orgId) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
@@ -171,6 +189,14 @@ class BaseController
     }
 
     protected function notAdded($msg)
+    {
+        $this->sendOutput(
+            json_encode(array('message' => $msg)),
+            array('Content-Type: application/json', 'HTTP/1.1 409 Conflict')
+        );
+    }
+
+    protected function notDeleted($msg)
     {
         $this->sendOutput(
             json_encode(array('message' => $msg)),

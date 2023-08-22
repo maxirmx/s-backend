@@ -72,6 +72,17 @@ class ShipmentController extends BaseController
                     unset($rsp['orgId']);
                 }
             }
+            elseif ($method == 'DELETE') {
+                $this->fenceAdmin($user);
+                if ($id == null) {
+                    $this->notFound('Не указан номер отправления.');
+                }
+                $rsp = $shipmentModel->deleteShipmentByNumber($id);
+                if ($rsp['res'] < 1) {
+                    $this->notDeleted('Не удалось удалить отправление.');
+                }
+                $statusModel->deleteStatusesByNumber($id);
+            }
             else  {
                 $this->notSupported();
             }
