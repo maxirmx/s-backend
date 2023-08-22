@@ -147,5 +147,11 @@ class ShipmentModel extends Database
         $res = $this->execute("DELETE FROM shipments WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
+
+    public function deleteShipmentByNumber($number)
+    {
+        $res = $this->execute("DELETE FROM shipments WHERE number = ?", 's', array($number));
+        return array("res" => $res );
+    }
 }
 ?>

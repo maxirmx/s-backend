@@ -73,5 +73,10 @@ class StatusModel extends Database
         $res = $this->execute("DELETE FROM statuses WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
+    public function deleteStatusesByNumber($number)
+    {
+        $res = $this->execute("DELETE FROM statuses WHERE shipmentNumber = ?", 's', array($number));
+        return array("res" => $res );
+    }
 }
 ?>
