@@ -33,10 +33,10 @@ class Database
     {
         try {
             $this->connection = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE_NAME);
-
             if ( mysqli_connect_errno()) {
                 throw new Exception("Could not connect to database.");
             }
+            $this->connection->set_charset("utf8mb4");
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
