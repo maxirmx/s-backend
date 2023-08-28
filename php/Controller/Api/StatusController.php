@@ -71,6 +71,16 @@ class StatusController extends BaseController
                 $rsp = $statusModel->updateStatus($id, $data);
                 $shipmentModel->updateDDate($data);
             }
+            elseif ($method == 'DELETE') {
+                $this->fenceAdmin($user);
+                if ($id == null) {
+                    $this->notFound('Не указан статус для удаления.');
+                }
+                $rsp = $statusModel->deleteStatus($id);
+                if ($rsp['res'] < 1) {
+                    $this->notDeleted('Не удалось удалить статус.');
+                }
+            }
             else  {
                 $this->notSupported();
             }
