@@ -43,7 +43,7 @@ class OrgController extends BaseController
                 }
             }
             elseif ($id == null && $method == 'GET') {
-                $this->fenceManagerOrAdmin($user);                 
+                $this->fenceManagerOrAdmin($user);
                 $rsp = $orgModel->getOrgs();
             }
             elseif ($m == 'GET') {
@@ -59,6 +59,16 @@ class OrgController extends BaseController
             }
             elseif ($m == 'DELETE') {
                 $this->fenceAdmin($user);
+                $rsp = $orgModel->getOrg($id);
+                if (!$rsp) {
+                    $this->notDeleted('Не удалось удалить организацию');
+                }
+                if ($rsp['num_users'] > 0) {
+                    $this->notDeleted('Невозможно удалить организацию, если с ней связаны пользователи');
+                }
+                if ($rsp['num_shipments'] > 0) {
+                    $this->notDeleted('Невозможно удалить организацию, если с ней связаны отправления');
+                }
                 $rsp = $orgModel->deleteOrg($id);
             }
             else  {
