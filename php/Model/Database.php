@@ -80,5 +80,27 @@ class Database
             throw New Exception( $e->getMessage() );
         }
     }
+
+    public function startTransaction()
+    {
+        $this->connection->begin_transaction();
+    }
+
+    public function commitTransaction()
+    {
+        $this->connection->commit();
+    }
+
+    public function rollbackTransaction()
+    {
+        $this->connection->rollback();
+    }
+
+    public function __destruct()
+    {
+        if ($this->connection) {
+            $this->connection->close();
+        }
+    }
 }
 ?>

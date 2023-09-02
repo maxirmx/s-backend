@@ -49,18 +49,22 @@ class StatusController extends BaseController
             }
             elseif ($id != null && $method == 'GET') {
                 if ($this->dh) {
-                    $rsp = $statusModel->getStatusesByNumber($id);
-                    $usr = $shipmentModel->getUserByNumber($id);
+                    $rsp = $statusModel->getStatusesByShipmentId($id);
+                    $usr = $shipmentModel->getUserByShipmentId($id);
                 }
                 else {
                     $rsp = $statusModel->getStatus($id);
                     if ($rsp) {
-                        $usr = $shipmentModel->getUserByNumber($rsp['shipmentNumber']);
+                        $usr = $shipmentModel->getUserByShipmentId($rsp['shipmentNumber']);
                     }
                 }
                 if (!$usr) {
                     $this->notFound('Отправление с таким номером не зарегистрировано.');
                 }
+                /*
+                    Если инициатор запроса - менеджер, он может видеть всё.
+                    Иначе - только свои отправления и отправления своей организации.
+                */
                 if (!$user->isManager && !$this->checkUser($usr, $user) && !$this->checkOrg($usr, $user)) {
                     $this->forbidden('Недостаточно прав для выполнения операции.');
                 }

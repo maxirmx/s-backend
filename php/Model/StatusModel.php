@@ -35,9 +35,9 @@ class StatusModel extends Database
         return $this->select("SELECT * FROM statuses ORDER BY id ASC");
     }
 
-    public function getStatusesByNumber($number)
+    public function getStatusesByShipmentId($id)
     {
-        return $this->select("SELECT * FROM statuses WHERE shipmentNumber = ? ORDER BY id DESC", 's', array($number));
+        return $this->select("SELECT * FROM statuses WHERE shipmentId = ? ORDER BY id DESC", 'i', array($id));
     }
 
     public function addStatus($data)
@@ -45,13 +45,13 @@ class StatusModel extends Database
         if (!isset($data['comment'])) {
             $data['comment'] = "";
         }
-        $res = $this->execute("INSERT INTO statuses (shipmentNumber, status, date, location, comment) VALUES (?, ?, ?, ?, ?)", 'sisss',
-                               array($data['shipmentNumber'], $data['status'], $data['date'], $data['location'], $data['comment']));
+        $res = $this->execute("INSERT INTO statuses (shipmentId, status, date, location, comment) VALUES (?, ?, ?, ?, ?)", 'iisss',
+                               array($data['shipmentId'], $data['status'], $data['date'], $data['location'], $data['comment']));
         return array("res" => $res );
     }
     public function addInitialStatus($data)
     {
-        $data['shipmentNumber'] = $data['number'];
+        $data['shipmentId'] = $data['id'];
         return $this->addStatus($data);
     }
     public function getStatus($id)
@@ -64,8 +64,8 @@ class StatusModel extends Database
         if (!isset($data['comment'])) {
             $data['comment'] = "";
         }
-        $res = $this->execute("UPDATE statuses SET shipmentNumber = ?, status = ?, date = ?, location = ?, comment = ? WHERE id = ?", 'sisssi',
-                               array($data['shipmentNumber'], $data['status'], $data['date'], $data['location'], $data['comment'], $id));
+        $res = $this->execute("UPDATE statuses SET shipmentId = ?, status = ?, date = ?, location = ?, comment = ? WHERE id = ?", 'iisssi',
+                               array($data['shipmentId'], $data['status'], $data['date'], $data['location'], $data['comment'], $id));
         return array("res" => $res );
     }
     public function deleteStatus($id)
@@ -73,9 +73,9 @@ class StatusModel extends Database
         $res = $this->execute("DELETE FROM statuses WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
-    public function deleteStatusesByNumber($number)
+    public function deleteStatusesById($id)
     {
-        $res = $this->execute("DELETE FROM statuses WHERE shipmentNumber = ?", 's', array($number));
+        $res = $this->execute("DELETE FROM statuses WHERE shipmentId = ?", 'i', array($id));
         return array("res" => $res );
     }
 }

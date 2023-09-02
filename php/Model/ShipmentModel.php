@@ -31,22 +31,20 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 class ShipmentModel extends Database
 {
     protected const SHIPMENT_REQ =
-    '   SELECT shipments.id, shipments.number, shipments. dest, shipments.ddate,
+    '   SELECT shipments.id, shipments.number, shipments.dest, shipments.ddate,
                shipments.userId, shipments.orgId,
-               users.lastName,  users.firstName, users.patronimic,
                organizations.name,
                most_recent_status.status, most_recent_status.id AS statusId
         FROM shipments
-        LEFT JOIN users ON users.id = shipments.userId
         LEFT JOIN organizations ON organizations.id = shipments.orgId
         LEFT JOIN (
             SELECT a.*
             FROM statuses a
-            LEFT OUTER JOIN statuses b ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
-            WHERE b.shipmentNumber IS NULL)
+            LEFT OUTER JOIN statuses b ON a.shipmentId = b.shipmentId AND a.id < b.id
+            WHERE b.shipmentId IS NULL)
         AS most_recent_status
-        ON shipments.number = most_recent_status.shipmentNumber
-        WHERE shipments.number = ?
+        ON shipments.id = most_recent_status.shipmentId
+        WHERE shipments.id = ?
     ';
 
     protected const ALL_SHIPMENTS_REQ =
@@ -57,10 +55,11 @@ class ShipmentModel extends Database
         LEFT JOIN (
             SELECT a.*
             FROM statuses a
-            LEFT OUTER JOIN statuses b ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
-            WHERE b.shipmentNumber IS NULL)
+            LEFT OUTER JOIN statuses b ON a.shipmentId = b.shipmentId AND a.id < b.id
+            WHERE b.shipmentId IS NULL)
         AS most_recent_status
-        ON shipments.number = most_recent_status.shipmentNumber
+        ON shipments.id = most_recent_status.shipmentId
+        ORDER BY shipments.id DESC
     ';
 
     protected const FILTERED_SHIPMENTS_REQ =
@@ -75,12 +74,13 @@ class ShipmentModel extends Database
             WHERE b.shipmentNumber IS NULL)
         AS most_recent_status
         ON shipments.number = most_recent_status.shipmentNumber
-        WHERE shipments.userId = ? OR shipments.orgId = ?
+        WHERE shipments.orgId = ?
+        ORDER BY shipments.id DESC
     ';
 
     public function getFilteredShipments($userId, $orgId)
     {
-        return $this->select(ShipmentModel::FILTERED_SHIPMENTS_REQ, 'ii', array($userId, $orgId));
+        return $this->select(ShipmentModel::FILTERED_SHIPMENTS_REQ, 'i', array($orgId));
     }
 
     public function getAllShipments()
@@ -90,7 +90,7 @@ class ShipmentModel extends Database
 
     public function getShipments()
     {
-        return $this->select("SELECT * FROM shipments ORDER BY id ASC");
+        return $this->select("SELECT * FROM shipments ORDER BY id DESC");
     }
 
     public function addShipment($data)
@@ -114,15 +114,15 @@ class ShipmentModel extends Database
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
-    public function getShipmentByNumber($number)
+    public function getShipmentEnriched($id)
     {
-        $result = $this->select(ShipmentModel::SHIPMENT_REQ, 's', array($number));
+        $result = $this->select(ShipmentModel::SHIPMENT_REQ, 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
-    public function getUserByNumber($number)
+    public function getUserByShipmentId($id)
     {
-        $result = $this->select('SELECT shipments.userId, shipments.orgId FROM shipments WHERE shipments.number = ?', 's', array($number));
+        $result = $this->select('SELECT shipments.userId, shipments.orgId FROM shipments WHERE shipments.id = ?', 'id', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 

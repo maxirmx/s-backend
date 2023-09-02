@@ -59,9 +59,9 @@ class ShipmentController extends BaseController
                     }
                 }
                 else {
-                    $rsp = $shipmentModel->getShipmentByNumber($id);
+                    $rsp = $shipmentModel->getShipmentEnriched($id);
                     if (!$rsp) {
-                        $this->notFound('Отправление с таким номером не найдено.');
+                        $this->notFound('Информация об отправлении не найдена.');
                     }
 
                     if (!$user->isManager && !$this->checkUser($rsp, $user) && !$this->checkOrg($rsp, $user)) {
@@ -77,11 +77,14 @@ class ShipmentController extends BaseController
                 if ($id == null) {
                     $this->notFound('Не указан номер отправления.');
                 }
+                $shipmentModel->startTransaction();
                 $rsp = $shipmentModel->deleteShipmentByNumber($id);
                 if ($rsp['res'] < 1) {
+                    $shipmentModel->rollbackTransaction();
                     $this->notDeleted('Не удалось удалить отправление.');
                 }
                 $statusModel->deleteStatusesByNumber($id);
+                $shipmentModel->commitTransaction();
             }
             else  {
                 $this->notSupported();
