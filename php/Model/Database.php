@@ -96,6 +96,11 @@ class Database
         $this->connection->rollback();
     }
 
+    public function lastInsertId()
+    {
+	return $this->connection->insert_id;
+    }
+
     public function __destruct()
     {
         if ($this->connection) {

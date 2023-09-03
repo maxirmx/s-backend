@@ -36,6 +36,7 @@ class StatusController extends BaseController
     }
     public function execute($id, $method, $user) {
         $rsp = null;
+        $usr = null;
         $strErrorDesc = null;
         try {
             $statusModel = new StatusModel();
@@ -44,8 +45,20 @@ class StatusController extends BaseController
             if ($id == 'add' && $m == 'POST') {
                 $this->fenceManager($user);
                 $data = $this->getPostData();
+                $this->checkParams($data, ['shipmentId', 'status', 'date', 'location', 'dest', 'ddate']);
+                $statusModel->startTransaction();
+                $rsp = $shipmentModel->getShipment($data['shipmentId']);
+                if (!$rsp) {
+                    $statusModel->rollbackTransaction();
+                    $this->notFound('Отправление не найдено.');
+                }
                 $rsp = $statusModel->addStatus($data);
+                if ($rsp['res'] < 1) {
+                    $statusModel->rollbackTransaction();
+                    $this->notSuccessful('Не удалось добавить статус.');
+                }
                 $shipmentModel->updateDDate($data);
+                $statusModel->commitTransaction();
             }
             elseif ($id != null && $method == 'GET') {
                 if ($this->dh) {
@@ -55,11 +68,11 @@ class StatusController extends BaseController
                 else {
                     $rsp = $statusModel->getStatus($id);
                     if ($rsp) {
-                        $usr = $shipmentModel->getUserByShipmentId($rsp['shipmentNumber']);
+                        $usr = $shipmentModel->getUserByShipmentId($rsp['shipmentId']);
                     }
                 }
                 if (!$usr) {
-                    $this->notFound('Отправление с таким номером не зарегистрировано.');
+                    $this->notFound('Отправление не найдено.');
                 }
                 /*
                     Если инициатор запроса - менеджер, он может видеть всё.
@@ -72,17 +85,23 @@ class StatusController extends BaseController
             elseif ($id != null && $method == 'PUT') {
                 $this->fenceManager($user);
                 $data = $this->getPostData();
+                $this->checkParams($data, ['status', 'date', 'location', 'dest', 'ddate']);
+                $statusModel->startTransaction();
+                $rsp = $shipmentModel->getShipmentIdByStatusId($id);
+                if (!$rsp) {
+                    $statusModel->rollbackTransaction();
+                    $this->notFound('Отправление не найдено.');
+                }
+                $data['shipmentId'] = $rsp['shipmentId'];
                 $rsp = $statusModel->updateStatus($id, $data);
                 $shipmentModel->updateDDate($data);
+                $statusModel->commitTransaction();
             }
-            elseif ($method == 'DELETE') {
+            elseif ($id != null && $method == 'DELETE') {
                 $this->fenceAdmin($user);
-                if ($id == null) {
-                    $this->notFound('Не указан статус для удаления.');
-                }
                 $rsp = $statusModel->deleteStatus($id);
                 if ($rsp['res'] < 1) {
-                    $this->notDeleted('Не удалось удалить статус.');
+                    $this->notSuccessful('Не удалось удалить статус.');
                 }
             }
             else  {

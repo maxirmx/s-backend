@@ -40,14 +40,17 @@ class ShipmentController extends BaseController
             if ($id == 'add' && $m == 'POST') {
                 $this->fenceManager($user);
                 $data = $this->getPostData();
+                $this->checkParams($data, ['number', 'ddate', 'dest', 'status', 'date', 'location', 'orgId']);
                 $rsp = $shipmentModel->addShipment($data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Отправление с таким номером уже зарегистрировано.');
+                    $this->notSuccessful('Отправление с таким номером уже зарегистрировано.');
                 }
-                $rsp = $statusModel->addInitialStatus($data);
-                if ($rsp['res'] < 1) {
-                    $this->notAdded('Не удалось зарегистрировать начальный статус для отправления.');
+		        $data['shipmentId'] = $rsp['ref'];
+                $rsp2 = $statusModel->addStatus($data);
+                if ($rsp2['res'] < 1) {
+                    $this->notSuccessful('Не удалось зарегистрировать начальный статус для отправления.');
                 }
+                $rsp['ref2'] = $rsp2['ref'];
             }
             elseif ($method == 'GET') {
                 if ($id == null) {
@@ -55,7 +58,7 @@ class ShipmentController extends BaseController
                         $rsp = $shipmentModel->getAllShipments();
                     }
                     else {
-                        $rsp = $shipmentModel->getFilteredShipments($user->id, $user->orgId);
+                        $rsp = $shipmentModel->getFilteredShipments($user->orgId);
                     }
                 }
                 else {
@@ -72,18 +75,24 @@ class ShipmentController extends BaseController
                     unset($rsp['orgId']);
                 }
             }
-            elseif ($method == 'DELETE') {
+            elseif ($method == 'PUT' && $id != null) {
                 $this->fenceAdmin($user);
-                if ($id == null) {
-                    $this->notFound('Не указан номер отправления.');
+                $data = $this->getPostData();
+                $this->checkParams($data, ['number', 'ddate', 'dest', 'orgId']);
+                $rsp = $shipmentModel->updateShipment($id, $data);
+                if ($rsp['res'] < 1) {
+                    $this->notSuccessful('Не удалось изменить отправление.');
                 }
+            }
+            elseif ($method == 'DELETE'  && $id != null) {
+                $this->fenceAdmin($user);
                 $shipmentModel->startTransaction();
-                $rsp = $shipmentModel->deleteShipmentByNumber($id);
+                $rsp = $shipmentModel->deleteShipment($id);
                 if ($rsp['res'] < 1) {
                     $shipmentModel->rollbackTransaction();
-                    $this->notDeleted('Не удалось удалить отправление.');
+                    $this->notSuccessful('Не удалось удалить отправление.');
                 }
-                $statusModel->deleteStatusesByNumber($id);
+                $statusModel->deleteStatusesByShipmentId($id);
                 $shipmentModel->commitTransaction();
             }
             else  {

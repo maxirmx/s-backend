@@ -34,7 +34,8 @@ class ShipmentModel extends Database
     '   SELECT shipments.id, shipments.number, shipments.dest, shipments.ddate,
                shipments.userId, shipments.orgId,
                organizations.name,
-               most_recent_status.status, most_recent_status.id AS statusId
+               most_recent_status.status, most_recent_status.id AS statusId,
+               first_status.location AS origin
         FROM shipments
         LEFT JOIN organizations ON organizations.id = shipments.orgId
         LEFT JOIN (
@@ -44,13 +45,21 @@ class ShipmentModel extends Database
             WHERE b.shipmentId IS NULL)
         AS most_recent_status
         ON shipments.id = most_recent_status.shipmentId
+        LEFT JOIN (
+            SELECT a.*
+            FROM statuses a
+            LEFT OUTER JOIN statuses b ON a.shipmentId = b.shipmentId AND a.id > b.id
+            WHERE b.shipmentId IS NULL)
+        AS first_status
+        ON shipments.id = first_status.shipmentId
         WHERE shipments.id = ?
     ';
 
     protected const ALL_SHIPMENTS_REQ =
-    '   SELECT  shipments.id, shipments.number,
+    '   SELECT  shipments.id, shipments.number, shipments.orgId, shipments.dest, shipments.ddate,
                 most_recent_status.date, most_recent_status.location,
-                most_recent_status.status
+                most_recent_status.status,
+                first_status.location AS origin
         FROM shipments
         LEFT JOIN (
             SELECT a.*
@@ -59,26 +68,41 @@ class ShipmentModel extends Database
             WHERE b.shipmentId IS NULL)
         AS most_recent_status
         ON shipments.id = most_recent_status.shipmentId
-        ORDER BY shipments.id DESC
+        LEFT JOIN (
+            SELECT a.*
+            FROM statuses a
+            LEFT OUTER JOIN statuses b ON a.shipmentId = b.shipmentId AND a.id > b.id
+            WHERE b.shipmentId IS NULL)
+        AS first_status
+        ON shipments.id = first_status.shipmentId
+        ORDER BY shipments.id ASC
     ';
 
     protected const FILTERED_SHIPMENTS_REQ =
-    '   SELECT shipments.id, shipments.number,
+    '   SELECT shipments.id, shipments.number, shipments.orgId, shipments.dest, shipments.ddate,
                most_recent_status.date, most_recent_status.location,
-               most_recent_status.status
+               most_recent_status.status,
+               first_status.location AS origin
         FROM shipments
         LEFT JOIN (
             SELECT a.*
             FROM statuses a
-            LEFT OUTER JOIN statuses b ON a.shipmentNumber = b.shipmentNumber AND a.id < b.id
-            WHERE b.shipmentNumber IS NULL)
+            LEFT OUTER JOIN statuses b ON a.shipmentId = b.shipmentId AND a.id < b.id
+            WHERE b.shipmentId IS NULL)
         AS most_recent_status
-        ON shipments.number = most_recent_status.shipmentNumber
+        ON shipments.id = most_recent_status.shipmentId
+        LEFT JOIN (
+            SELECT a.*
+            FROM statuses a
+            LEFT OUTER JOIN statuses b ON a.shipmentId = b.shipmentId AND a.id > b.id
+            WHERE b.shipmentId IS NULL)
+        AS first_status
+        ON shipments.id = first_status.shipmentId
         WHERE shipments.orgId = ?
-        ORDER BY shipments.id DESC
+        ORDER BY shipments.id ASC
     ';
 
-    public function getFilteredShipments($userId, $orgId)
+    public function getFilteredShipments($orgId)
     {
         return $this->select(ShipmentModel::FILTERED_SHIPMENTS_REQ, 'i', array($orgId));
     }
@@ -93,24 +117,29 @@ class ShipmentModel extends Database
         return $this->select("SELECT * FROM shipments ORDER BY id DESC");
     }
 
+    protected function fortifyRef($data, $name)
+    {
+        return  isset($data[$name]) && $data[$name] != -1 ? $data[$name] : -2;
+    }
+
     public function addShipment($data)
     {
-        $orgId = isset($data['orgId']) ? $data['orgId'] : -2;
-        if ($orgId == -1) {
-            $orgId = -2;
-        }
-        $userId = isset($data['userId']) ? $data['userId'] : -2;
-        if ($userId == -1) {
-            $userId = -2;
-        }
         $res = $this->execute("INSERT INTO shipments (number, dest, ddate, userId, orgId) VALUES (?, ?, ?, ?, ?)", 'sssii',
-               array($data['number'], $data['dest'], $data['ddate'], $userId, $orgId));
-        return array("res" => $res );
+                    array($data['number'], $data['dest'], $data['ddate'],
+                        $this->fortifyRef($data, 'userId'),
+                        $this->fortifyRef($data, 'orgId')));
+        return array("res" => $res, "ref" => $this->lastInsertId());
     }
 
     public function getShipment($id)
     {
         $result = $this->select("SELECT * FROM shipments WHERE id = ?", 'i', array($id));
+        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+    }
+
+    public function getShipmentIdByStatusId($statusId)
+    {
+        $result = $this->select("SELECT statuses.shipmentId FROM statuses WHERE statuses.id = ?", 's', array($statusId));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
@@ -122,35 +151,29 @@ class ShipmentModel extends Database
 
     public function getUserByShipmentId($id)
     {
-        $result = $this->select('SELECT shipments.userId, shipments.orgId FROM shipments WHERE shipments.id = ?', 'id', array($id));
+        $result = $this->select('SELECT shipments.userId, shipments.orgId FROM shipments WHERE shipments.id = ?', 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
     public function updateShipment($id, $data)
     {
-        $orgId = isset($data['orgId']) ? $data['orgId'] : -2;
-        $userId = isset($data['userId']) ? $data['userId'] : -2;
         $res = $this->execute("UPDATE shipments SET number = ?, dest = ?, ddate = ?, userId = ?, orgId = ? WHERE id = ?", 'sssiii',
-                               array($data['number'], $data['dest'], $data['ddate'], $userId, $orgId, $id));
+                            array($data['number'], $data['dest'], $data['ddate'],
+                               $this->fortifyRef($data, 'userId'),
+                               $this->fortifyRef($data, 'orgId'), $id)) ;
         return array("res" => $res );
     }
 
     public function updateDDate($data)
     {
-        $res = $this->execute("UPDATE shipments SET ddate = ? WHERE number = ?", 'ss',
-                               array($data['ddate'], $data['shipmentNumber']));
+        $res = $this->execute("UPDATE shipments SET ddate = ? WHERE id = ?" , 'si',
+                               array($data['ddate'], $data['shipmentId']));
         return array("res" => $res );
     }
 
     public function deleteShipment($id)
     {
         $res = $this->execute("DELETE FROM shipments WHERE id = ?", 'i', array($id));
-        return array("res" => $res );
-    }
-
-    public function deleteShipmentByNumber($number)
-    {
-        $res = $this->execute("DELETE FROM shipments WHERE number = ?", 's', array($number));
         return array("res" => $res );
     }
 }

@@ -55,7 +55,7 @@ class OrgModel extends Database
     public function addOrg($data)
     {
         $res = $this->execute("INSERT INTO organizations (name) VALUES (?)", 's', array($data['name']));
-        return array("res" => $res );
+        return array("res" => $res, "ref" => $this->lastInsertId());
     }
     public function getOrg($id)
     {

@@ -47,12 +47,7 @@ class StatusModel extends Database
         }
         $res = $this->execute("INSERT INTO statuses (shipmentId, status, date, location, comment) VALUES (?, ?, ?, ?, ?)", 'iisss',
                                array($data['shipmentId'], $data['status'], $data['date'], $data['location'], $data['comment']));
-        return array("res" => $res );
-    }
-    public function addInitialStatus($data)
-    {
-        $data['shipmentId'] = $data['id'];
-        return $this->addStatus($data);
+        return array("res" => $res, "ref" => $this->lastInsertId());
     }
     public function getStatus($id)
     {
@@ -64,8 +59,8 @@ class StatusModel extends Database
         if (!isset($data['comment'])) {
             $data['comment'] = "";
         }
-        $res = $this->execute("UPDATE statuses SET shipmentId = ?, status = ?, date = ?, location = ?, comment = ? WHERE id = ?", 'iisssi',
-                               array($data['shipmentId'], $data['status'], $data['date'], $data['location'], $data['comment'], $id));
+        $res = $this->execute("UPDATE statuses SET status = ?, date = ?, location = ?, comment = ? WHERE id = ?", 'isssi',
+                               array($data['status'], $data['date'], $data['location'], $data['comment'], $id));
         return array("res" => $res );
     }
     public function deleteStatus($id)
@@ -73,7 +68,7 @@ class StatusModel extends Database
         $res = $this->execute("DELETE FROM statuses WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
-    public function deleteStatusesById($id)
+    public function deleteStatusesByShipmentId($id)
     {
         $res = $this->execute("DELETE FROM statuses WHERE shipmentId = ?", 'i', array($id));
         return array("res" => $res );

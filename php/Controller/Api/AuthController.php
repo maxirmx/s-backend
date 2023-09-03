@@ -146,7 +146,7 @@ class AuthController extends BaseController
 
                 $ursp = $userModel->addUser($data);
                 if ($ursp['res'] < 1) {
-                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                    $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
                 $payload = array('email' => $data['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
