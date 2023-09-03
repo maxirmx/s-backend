@@ -37,28 +37,42 @@ class OrgController extends BaseController
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
                 $this->fenceAdmin($user);
-                $rsp = $orgModel->addOrg($this->getPostData());
+                $data = $this->getPostData();
+                $this->checkParams($data, ['name']);
+                $rsp = $orgModel->addOrg($data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+                    $this->notSuccessful('Организация с таким названием уже зарегистрирована');
                 }
             }
-            elseif ($id == null && $method == 'GET') {
-                $this->fenceManagerOrAdmin($user);                 
+            elseif ($id == null && $m == 'GET') {
+                $this->fenceManagerOrAdmin($user);
                 $rsp = $orgModel->getOrgs();
             }
             elseif ($m == 'GET') {
             /*    $this->fenceManagerOrAdminOrSameOrg($id, $user)  */
                 $rsp = $orgModel->getOrg($id);
             }
-            elseif ($m == 'PUT') {
+            elseif ($m == 'PUT' && $id != null) {
                 $this->fenceAdmin($user);
-                $rsp = $orgModel->updateOrg($id, $this->getPostData());
+                $data = $this->getPostData();
+                $this->checkParams($data, ['name']);
+                $rsp = $orgModel->updateOrg($id, $data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Организация с таким названием уже зарегистрирована');
+                    $this->notSuccessful('Организация с таким названием уже зарегистрирована');
                 }
             }
-            elseif ($m == 'DELETE') {
+            elseif ($m == 'DELETE' && $id != null) {
                 $this->fenceAdmin($user);
+                $rsp = $orgModel->getOrg($id);
+                if (!$rsp) {
+                    $this->notSuccessful('Не удалось удалить организацию');
+                }
+                if ($rsp['num_users'] > 0) {
+                    $this->notSuccessful('Невозможно удалить организацию, если с ней связаны пользователи');
+                }
+                if ($rsp['num_shipments'] > 0) {
+                    $this->notSuccessful('Невозможно удалить организацию, если с ней связаны отправления');
+                }
                 $rsp = $orgModel->deleteOrg($id);
             }
             else  {

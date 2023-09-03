@@ -161,14 +161,14 @@ class BaseController
 
     protected function notSupported()
     {
-        $this->sendOutput(json_encode(array('message' => 'Method not supported')),
+        $this->sendOutput(json_encode(array('message' => 'Метод не поддерживается')),
             array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
 
-    protected function missedParameter()
+    protected function missedParameter($param = null)
     {
-        $this->sendOutput(json_encode(array('message' => 'Missed request parameter')),
+        $this->sendOutput(json_encode(array('message' => 'Не задан необходимый параметр запроса' . ($param ? ': ' . $param : ''))),
             array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
@@ -188,15 +188,7 @@ class BaseController
         );
     }
 
-    protected function notAdded($msg)
-    {
-        $this->sendOutput(
-            json_encode(array('message' => $msg)),
-            array('Content-Type: application/json', 'HTTP/1.1 409 Conflict')
-        );
-    }
-
-    protected function notDeleted($msg)
+    protected function notSuccessful($msg)
     {
         $this->sendOutput(
             json_encode(array('message' => $msg)),
@@ -210,6 +202,15 @@ class BaseController
             json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 404 Not Found')
         );
+    }
+
+    protected function checkParams($data, $params)
+    {
+        foreach ($params as $param) {
+            if (!isset($data[$param])) {
+                $this->missedParameter($param);
+            }
+          }
     }
 
 }

@@ -43,9 +43,11 @@ class UserController extends BaseController
                    $data['isAdmin'] = false;
                    $data['orgId'] = -1;
                 }
+                $this->checkParams($data, ['email', 'lastName', 'firstName', 'password', "isEnabled", "isManager", "isAdmin", "orgId"]);
+
                 $rsp = $userModel->addUser($data);
                 if ($rsp['res'] < 1) {
-                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                    $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
             }
             elseif ($id == null && $method == 'GET') {
@@ -64,7 +66,7 @@ class UserController extends BaseController
 		        $data = $this->getPostData();
 		        $usr = $userModel->getUserByEmail($data['email']);
                 if ($usr && $usr['id'] != $id) {
-                    $this->notAdded('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                    $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
                 $rsp = $userModel->updateUser($id, $data, $user->isAdmin);
             }

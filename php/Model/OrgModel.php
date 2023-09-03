@@ -30,18 +30,36 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 
 class OrgModel extends Database
 {
+    protected const ORGS_REQ =
+    '
+        SELECT *,
+                (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments
+        FROM `organizations`
+        ORDER BY organizations.id ASC
+    ';
+
+    protected const ORG_REQ =
+    '
+        SELECT *,
+            (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
+            (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments
+        FROM `organizations`
+        WHERE organizations.id = ?
+    ';
+
     public function getOrgs()
     {
-        return $this->select("SELECT * FROM organizations ORDER BY id ASC");
+        return $this->select(OrgModel::ORGS_REQ);
     }
     public function addOrg($data)
     {
         $res = $this->execute("INSERT INTO organizations (name) VALUES (?)", 's', array($data['name']));
-        return array("res" => $res );
+        return array("res" => $res, "ref" => $this->lastInsertId());
     }
     public function getOrg($id)
     {
-        $result = $this->select("SELECT * FROM organizations WHERE id = ?", 'i', array($id));
+        $result = $this->select(OrgModel::ORG_REQ, 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
     public function updateOrg($id, $data)

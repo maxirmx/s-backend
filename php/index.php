@@ -77,7 +77,7 @@ try {
 
 }
 catch (Exception $e) {
-    echo $e->getMessage() .'/n';
+    echo $e->getMessage();
 }
 echo 'Запрос не был обработан по непонятной причине.';
 ?>

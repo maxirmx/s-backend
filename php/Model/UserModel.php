@@ -53,7 +53,7 @@ class UserModel extends Database
                           $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
                           $password)
                 );
-        return array("res" => $res );
+        return array("res" => $res, "ref" => $this->lastInsertId());
     }
     public function getUser($id)
     {
