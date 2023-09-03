@@ -71,8 +71,6 @@ class ShipmentController extends BaseController
                         $this->forbidden('Недостаточно прав для выполнения операции.');
                     }
 
-                    unset($rsp['userId']);
-                    unset($rsp['orgId']);
                 }
             }
             elseif ($method == 'PUT' && $id != null) {

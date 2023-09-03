@@ -32,8 +32,7 @@ class ShipmentModel extends Database
 {
     protected const SHIPMENT_REQ =
     '   SELECT shipments.id, shipments.number, shipments.dest, shipments.ddate,
-               shipments.userId, shipments.orgId,
-               organizations.name,
+               organizations.id AS orgId, organizations.name, 
                most_recent_status.status, most_recent_status.id AS statusId,
                first_status.location AS origin
         FROM shipments
@@ -56,11 +55,13 @@ class ShipmentModel extends Database
     ';
 
     protected const ALL_SHIPMENTS_REQ =
-    '   SELECT  shipments.id, shipments.number, shipments.orgId, shipments.dest, shipments.ddate,
+    '   SELECT  shipments.id, shipments.number, shipments.dest, shipments.ddate,
+                shipments.orgId, organizations.name,
                 most_recent_status.date, most_recent_status.location,
                 most_recent_status.status,
                 first_status.location AS origin
         FROM shipments
+        LEFT JOIN organizations ON organizations.id = shipments.orgId
         LEFT JOIN (
             SELECT a.*
             FROM statuses a
@@ -79,11 +80,13 @@ class ShipmentModel extends Database
     ';
 
     protected const FILTERED_SHIPMENTS_REQ =
-    '   SELECT shipments.id, shipments.number, shipments.orgId, shipments.dest, shipments.ddate,
+    '   SELECT shipments.id, shipments.number, shipments.dest, shipments.ddate,
+               shipments.orgId, organizations.name,
                most_recent_status.date, most_recent_status.location,
                most_recent_status.status,
                first_status.location AS origin
         FROM shipments
+        LEFT JOIN organizations ON organizations.id = shipments.orgId
         LEFT JOIN (
             SELECT a.*
             FROM statuses a
