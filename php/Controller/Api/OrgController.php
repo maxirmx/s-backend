@@ -57,9 +57,6 @@ class OrgController extends BaseController
                 $data = $this->getPostData();
                 $this->checkParams($data, ['name']);
                 $rsp = $orgModel->updateOrg($id, $data);
-                if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Организация с таким названием уже зарегистрирована');
-                }
             }
             elseif ($m == 'DELETE' && $id != null) {
                 $this->fenceAdmin($user);

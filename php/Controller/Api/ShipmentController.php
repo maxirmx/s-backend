@@ -78,9 +78,6 @@ class ShipmentController extends BaseController
                 $data = $this->getPostData();
                 $this->checkParams($data, ['number', 'ddate', 'dest', 'orgId']);
                 $rsp = $shipmentModel->updateShipment($id, $data);
-                if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Не удалось изменить отправление.');
-                }
             }
             elseif ($method == 'DELETE'  && $id != null) {
                 $this->fenceAdmin($user);
