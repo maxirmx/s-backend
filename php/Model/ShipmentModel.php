@@ -31,7 +31,7 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 class ShipmentModel extends Database
 {
     protected const SHIPMENT_REQ =
-    '   SELECT shipments.id, shipments.number, shipments.dest, shipments.ddate,
+    '   SELECT shipments.id, shipments.number, shipments.dest, shipments.ddate, shipments.isArchieved,
                organizations.id AS orgId, organizations.name,
                most_recent_status.status, most_recent_status.id AS statusId,
                first_status.location AS origin
