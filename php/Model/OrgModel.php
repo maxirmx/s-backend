@@ -34,8 +34,9 @@ class OrgModel extends Database
     '
         SELECT *,
                 (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
-                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments
-        FROM `organizations`
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments,
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
+                FROM `organizations`
         ORDER BY organizations.id ASC
     ';
 
@@ -43,7 +44,8 @@ class OrgModel extends Database
     '
         SELECT *,
             (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
-            (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments
+            (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 0) as num_shipments,
+            (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
         FROM `organizations`
         WHERE organizations.id = ?
     ';
@@ -60,6 +62,11 @@ class OrgModel extends Database
     public function getOrg($id)
     {
         $result = $this->select(OrgModel::ORG_REQ, 'i', array($id));
+        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+    }
+    public function getOrgByName($name)
+    {
+        $result = $this->select("SELECT * FROM organizations WHERE organizations.name = ?", 's', array($name));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
     public function updateOrg($id, $data)

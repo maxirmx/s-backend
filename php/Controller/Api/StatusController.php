@@ -36,7 +36,7 @@ class StatusController extends BaseController
     }
     public function execute($id, $method, $user) {
         $rsp = null;
-        $usr = null;
+        $org = null;
         $strErrorDesc = null;
         try {
             $statusModel = new StatusModel();
@@ -63,22 +63,22 @@ class StatusController extends BaseController
             elseif ($id != null && $method == 'GET') {
                 if ($this->dh) {
                     $rsp = $statusModel->getStatusesByShipmentId($id);
-                    $usr = $shipmentModel->getUserByShipmentId($id);
+                    $org = $shipmentModel->getOrgByShipmentId($id);
                 }
                 else {
                     $rsp = $statusModel->getStatus($id);
                     if ($rsp) {
-                        $usr = $shipmentModel->getUserByShipmentId($rsp['shipmentId']);
+                        $org = $shipmentModel->getOrgByShipmentId($rsp['shipmentId']);
                     }
                 }
-                if (!$usr) {
+                if (!$org) {
                     $this->notFound('Отправление не найдено.');
                 }
                 /*
                     Если инициатор запроса - менеджер, он может видеть всё.
-                    Иначе - только свои отправления и отправления своей организации.
+                    Иначе - только отправления своей организации.
                 */
-                if (!$user->isManager && !$this->checkUser($usr, $user) && !$this->checkOrg($usr, $user)) {
+                if (!$user->isManager && !$this->checkOrg($org, $user)) {
                     $this->forbidden('Недостаточно прав для выполнения операции.');
                 }
             }

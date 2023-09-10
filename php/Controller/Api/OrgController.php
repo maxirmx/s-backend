@@ -29,6 +29,13 @@ require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
 
 class OrgController extends BaseController
 {
+    protected function checkOrgExists($orgModel, $name, $id = null) {
+        $org = $orgModel->getOrgByName($name);
+        if ($org && $id && $org['id'] != $id) {
+            $this->notSuccessful('Организация с таким названием уже зарегистрирована');
+        }
+    }
+
     public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
@@ -39,9 +46,10 @@ class OrgController extends BaseController
                 $this->fenceAdmin($user);
                 $data = $this->getPostData();
                 $this->checkParams($data, ['name']);
+                $this->checkOrgExists($orgModel, $data['name']);
                 $rsp = $orgModel->addOrg($data);
                 if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Организация с таким названием уже зарегистрирована');
+                    $this->notSuccessful('Не удалось добавить организацию');
                 }
             }
             elseif ($id == null && $m == 'GET') {
@@ -56,6 +64,7 @@ class OrgController extends BaseController
                 $this->fenceAdmin($user);
                 $data = $this->getPostData();
                 $this->checkParams($data, ['name']);
+                $this->checkOrgExists($orgModel, $data['name'], $id);
                 $rsp = $orgModel->updateOrg($id, $data);
             }
             elseif ($m == 'DELETE' && $id != null) {
@@ -67,10 +76,13 @@ class OrgController extends BaseController
                 if ($rsp['num_users'] > 0) {
                     $this->notSuccessful('Невозможно удалить организацию, если с ней связаны пользователи');
                 }
-                if ($rsp['num_shipments'] > 0) {
+                if ($rsp['num_shipments'] > 0 || $rsp['num_archieved'] > 0) {
                     $this->notSuccessful('Невозможно удалить организацию, если с ней связаны отправления');
                 }
                 $rsp = $orgModel->deleteOrg($id);
+                if ($rsp['res'] < 1) {
+                    $this->notSuccessful('Не удалось добавить организацию');
+                }
             }
             else  {
                 $this->notSupported();
