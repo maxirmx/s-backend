@@ -29,6 +29,13 @@ require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 
 class UserController extends BaseController
 {
+    protected function checkUserExists($userModel, $email, $id = null) {
+        $usr = $userModel->getUserByEmail($email);
+        if ($usr && $usr['id'] != $id) {
+            $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
+        }
+    }
+
     public function execute($id, $method, $user) {
         $rsp = null;
         $strErrorDesc = null;
@@ -44,10 +51,10 @@ class UserController extends BaseController
                    $data['orgId'] = -1;
                 }
                 $this->checkParams($data, ['email', 'lastName', 'firstName', 'password', "isEnabled", "isManager", "isAdmin", "orgId"]);
-
+                $this->checkUserExists($userModel, $data['email']);
                 $rsp = $userModel->addUser($data);
                 if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                    $this->notSuccessful('Не далось добавить пользователя');
                 }
             }
             elseif ($id == null && $method == 'GET') {
@@ -64,10 +71,8 @@ class UserController extends BaseController
                 }
                 $this->fenceAdminOrSameUser($id, $user);
 		        $data = $this->getPostData();
-		        $usr = $userModel->getUserByEmail($data['email']);
-                if ($usr && $usr['id'] != $id) {
-                    $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
-                }
+                $this->checkParams($data, ['email', 'lastName', 'firstName', 'isEnabled', 'isManager', 'isAdmin', 'orgId']);
+                $this->checkUserExists($userModel, $data['email'], $id);
                 $rsp = $userModel->updateUser($id, $data, $user->isAdmin);
             }
             elseif ($m == 'DELETE') {

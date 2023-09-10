@@ -30,17 +30,20 @@ require_once PROJECT_ROOT_PATH . "/Model/StatusModel.php";
 
 class ShipmentController extends BaseController
 {
-    public function execute($id, $method, $user) {
+    public function execute($id, $method, $user)
+    {
         $rsp = null;
         $strErrorDesc = null;
         try {
             $shipmentModel = new ShipmentModel();
+            $shipmentModel->archieve();
             $statusModel = new StatusModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
                 $this->fenceManager($user);
                 $data = $this->getPostData();
                 $this->checkParams($data, ['number', 'ddate', 'dest', 'status', 'date', 'location', 'orgId']);
+                $data['isArchieved'] = false;
                 $rsp = $shipmentModel->addShipment($data);
                 if ($rsp['res'] < 1) {
                     $this->notSuccessful('Отправление с таким номером уже зарегистрировано.');
@@ -55,10 +58,18 @@ class ShipmentController extends BaseController
             elseif ($method == 'GET') {
                 if ($id == null) {
                     if ($user->isManager) {
-                        $rsp = $shipmentModel->getAllShipments();
+                        $rsp = $shipmentModel->getAllShipments(false);
                     }
                     else {
-                        $rsp = $shipmentModel->getFilteredShipments($user->orgId);
+                        $rsp = $shipmentModel->getFilteredShipments($user->orgId, false);
+                    }
+                }
+                elseif ($id == 'archieve') {
+                    if ($user->isManager) {
+                        $rsp = $shipmentModel->getAllShipments(true);
+                    }
+                    else {
+                        $rsp = $shipmentModel->getFilteredShipments($user->orgId, true);
                     }
                 }
                 else {
@@ -67,7 +78,7 @@ class ShipmentController extends BaseController
                         $this->notFound('Информация об отправлении не найдена.');
                     }
 
-                    if (!$user->isManager && !$this->checkUser($rsp, $user) && !$this->checkOrg($rsp, $user)) {
+                    if (!$user->isManager  && !$this->checkOrg($rsp, $user)) {
                         $this->forbidden('Недостаточно прав для выполнения операции.');
                     }
 

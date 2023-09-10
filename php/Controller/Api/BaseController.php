@@ -85,12 +85,6 @@ class BaseController
         exit;
     }
 
-    protected function checkUser($data, $user) {
-        return  (isset($data['userId']) &&
-                 $data['userId'] >= 0   &&
-                 $data['userId'] == $user->id);
-    }
-
     protected function checkOrg($data, $user) {
         return  (isset($data['orgId']) &&
                  $data['orgId'] >= 0   &&

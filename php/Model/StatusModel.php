@@ -32,12 +32,12 @@ class StatusModel extends Database
 {
     public function getStatuses()
     {
-        return $this->select("SELECT * FROM statuses ORDER BY id ASC");
+        return $this->select("SELECT * FROM statuses ORDER BY `date` DESC");
     }
 
     public function getStatusesByShipmentId($id)
     {
-        return $this->select("SELECT * FROM statuses WHERE shipmentId = ? ORDER BY id DESC", 'i', array($id));
+        return $this->select("SELECT * FROM statuses WHERE shipmentId = ? ORDER BY `date` DESC, id DESC", 'i', array($id));
     }
 
     public function addStatus($data)
