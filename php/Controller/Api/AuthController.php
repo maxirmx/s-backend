@@ -201,6 +201,9 @@ class AuthController extends BaseController
                 $userModel = new UserModel();
                 $rsp = $this->login($userModel, $user->email, null);
             }
+            elseif ($id == 'check' && $m == 'GET') {
+                $rsp = $this->checkAuth();
+            }
             else  {
                 $this->notSupported();
             }
