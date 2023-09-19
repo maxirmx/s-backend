@@ -28,15 +28,19 @@
 
 class Database
 {
-    protected $connection = null;
+    protected static $connection = null;
+    protected static $refs = 0;
     public function __construct()
     {
         try {
-            $this->connection = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE_NAME);
-            if ( mysqli_connect_errno()) {
-                throw new Exception("Could not connect to database.");
+            if ($connection = null) {
+                self::$connection = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE_NAME);
+                if ( mysqli_connect_errno()) {
+                    throw new Exception("Could not connect to database.");
+                }
+                self::$connection->set_charset("utf8mb4");
             }
-            $this->connection->set_charset("utf8mb4");
+            self::$refs++;
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
@@ -67,7 +71,7 @@ class Database
     private function executeStatement($query = "" , $types= "", $params = [])
     {
         try {
-            $stmt = $this->connection->prepare( $query );
+            $stmt = self::$connection->prepare( $query );
             if($stmt === false) {
                 throw New Exception("Unable to do prepared statement: " . $query);
             }
@@ -83,28 +87,30 @@ class Database
 
     public function startTransaction()
     {
-        $this->connection->begin_transaction();
+        self::$connection->begin_transaction();
     }
 
     public function commitTransaction()
     {
-        $this->connection->commit();
+        self::$connection->commit();
     }
 
     public function rollbackTransaction()
     {
-        $this->connection->rollback();
+        self::$connection->rollback();
     }
 
     public function lastInsertId()
     {
-	return $this->connection->insert_id;
+	    return self::$connection->insert_id;
     }
 
     public function __destruct()
     {
-        if ($this->connection) {
-            $this->connection->close();
+        self::$refs--;
+        if (self::$refs == 0 && self::$connection) {
+            self::$connection->close();
+            self::$connection = null;
         }
     }
 }
