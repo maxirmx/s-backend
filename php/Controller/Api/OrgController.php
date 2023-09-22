@@ -53,11 +53,15 @@ class OrgController extends BaseController
                 }
             }
             elseif ($id == null && $m == 'GET') {
-                $this->fenceManagerOrAdmin($user);
-                $rsp = $orgModel->getOrgs();
+                if ($user->isManager || $user->isAdmin) {
+                    $rsp = $orgModel->getOrgs();
+                }
+                else {
+                    $rsp = $orgModel->getOrgsByUserId($user->id);
+                }
             }
             elseif ($m == 'GET') {
-            /*    $this->fenceManagerOrAdminOrSameOrg($id, $user)  */
+                $this->fenceManagerOrAdminOrSameOrg($id, $user);
                 $rsp = $orgModel->getOrg($id);
             }
             elseif ($m == 'PUT' && $id != null) {

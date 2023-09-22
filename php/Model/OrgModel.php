@@ -33,10 +33,21 @@ class OrgModel extends Database
     protected const ORGS_REQ =
     '
         SELECT *,
-                (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
+                (SELECT COUNT(user_org_mappings.userId) FROM `user_org_mappings` WHERE user_org_mappings.orgId = organizations.id) as num_users,
                 (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments,
                 (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
-                FROM `organizations`
+        FROM `organizations`
+        ORDER BY organizations.id ASC
+    ';
+
+    protected const ORGS_BY_U_REQ =
+    '
+        SELECT *,
+                (SELECT COUNT(user_org_mappings.userId) FROM `user_org_mappings` WHERE user_org_mappings.orgId = organizations.id) as num_users,
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments,
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
+        FROM `organizations`
+        WHERE organizations.id IN (SELECT user_org_mappings.orgId FROM `user_org_mappings` WHERE user_org_mappings.userId = ?)
         ORDER BY organizations.id ASC
     ';
 
@@ -63,6 +74,9 @@ class OrgModel extends Database
     {
         $result = $this->select(OrgModel::ORG_REQ, 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
+    }
+    public function getOrgsByUserId($userId) {
+        return $this->select(OrgModel::ORGS_BY_U_REQ, 'i', array($userId));
     }
     public function getOrgByName($name)
     {

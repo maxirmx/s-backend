@@ -86,9 +86,8 @@ class BaseController
     }
 
     protected function checkOrg($data, $user) {
-        return  (isset($data['orgId']) &&
-                 $data['orgId'] >= 0   &&
-                 $data['orgId'] == $user->orgId);
+        return isset($data['orgs']) &&
+               in_array($user->orgId, $data['orgs'], true);
     }
 
     protected function fenceAdmin($user) {
@@ -116,13 +115,13 @@ class BaseController
     }
 
     protected function fenceAdminOrSameOrg($orgId, $user) {
-        if (!$user->isAdmin && $user->orgId != $orgId) {
+        if (!$user->isAdmin && !in_array($orgId, $user->orgs, true)) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
     protected function fenceManagerOrAdminOrSameOrg($orgId, $user) {
-        if (!$user->isAdmin && !$user->isManager && $user->orgId != $orgId) {
+        if (!$user->isAdmin && !$user->isManager && !in_array($orgId, $user->orgs, true)) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
