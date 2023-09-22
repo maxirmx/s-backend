@@ -30,16 +30,30 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 
 class UserModel extends Database
 {
-    protected const FLDS = "id, email, lastName, firstName, patronimic, orgId, isEnabled, isManager, isAdmin";
+    protected const FLDS = "id, email, lastName, firstName, patronimic, isEnabled, isManager, isAdmin";
     protected const FLDS_INS = "email, lastName, firstName, patronimic, orgId, isEnabled, isManager, isAdmin, password";
     protected const FLDS_UPDF = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, password=?";
     protected const FLDS_UPD = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?";
     protected const FLDS_UPDFC = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?, password=?";
     protected const FLDS_UPDC = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?";
 
+    protected function enrichWithOrgs($user) {
+        if ($user) {
+            $user['orgs'] = array();
+            $orgs = $this->select("SELECT orgId FROM user_org_mappings WHERE userId = ?", 'i', array($user['id']));
+            foreach ($orgs as $org) {
+                $user['orgs'][] = $org['orgId'];
+            }
+        }
+        return $user;
+    }
     public function getUsers()
     {
-        return $this->select("SELECT " . UserModel::FLDS . " FROM users ORDER BY id ASC");
+        $users = $this->select("SELECT " . UserModel::FLDS . " FROM users ORDER BY id ASC");
+        foreach ($users as &$user) {
+            $user = $this->enrichWithOrgs($user);
+        }
+        return $users;
     }
     public function addUser($data)
     {
@@ -58,12 +72,14 @@ class UserModel extends Database
     public function getUser($id)
     {
         $result = $this->select("SELECT " . UserModel::FLDS . " FROM users WHERE id = ?", 'i', array($id));
-        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+        $res = !is_null($result) && count($result) > 0 ? $result[0] : null;
+        return $this->enrichWithOrgs($res);
     }
     public function getUserByEmail($email)
     {
         $result = $this->select("SELECT * FROM users WHERE email = ?", 's', array(strtolower($email)));
-        return !is_null($result) && count($result) > 0 ? $result[0] : null;
+        $res = !is_null($result) && count($result) > 0 ? $result[0] : null;
+        return $this->enrichWithOrgs($res);
     }
     public function updateUser($id, $data, $credentials = false)
     {

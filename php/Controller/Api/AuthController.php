@@ -99,7 +99,7 @@ class AuthController extends BaseController
 
         unset($rsp['password']);
         $headers = array('alg'=>'HS256','typ'=>'JWT');
-        $payload = array('id' => $rsp['id'], 'orgId' => $rsp['orgId'], 'isEnabled' => $rsp['isEnabled'],
+        $payload = array('id' => $rsp['id'], 'orgs' => $rsp['orgs'], 'isEnabled' => $rsp['isEnabled'],
                          'isManager' => $rsp['isManager'], 'isAdmin' => $rsp['isAdmin'],
                          'exp' => (time() + JWT_EXPIRE));
         $jwt = generate_jwt($headers, $payload, JWT_SECRET);
