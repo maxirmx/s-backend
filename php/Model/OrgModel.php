@@ -54,7 +54,7 @@ class OrgModel extends Database
     protected const ORG_REQ =
     '
         SELECT *,
-            (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
+        (SELECT COUNT(user_org_mappings.userId) FROM `user_org_mappings` WHERE user_org_mappings.orgId = organizations.id) as num_users,
             (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 0) as num_shipments,
             (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
         FROM `organizations`
