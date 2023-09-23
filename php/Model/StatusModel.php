@@ -40,14 +40,14 @@ class StatusModel extends Database
         return $this->select("SELECT * FROM statuses WHERE shipmentId = ? ORDER BY `date` DESC, id DESC", 'i', array($id));
     }
 
-    public function addStatus($data)
+    public function add_status($data)
     {
         if (!isset($data['comment'])) {
             $data['comment'] = "";
         }
         $res = $this->execute("INSERT INTO statuses (shipmentId, status, date, location, comment) VALUES (?, ?, ?, ?, ?)", 'iisss',
                                array($data['shipmentId'], $data['status'], $data['date'], $data['location'], $data['comment']));
-        return array("res" => $res, "ref" => $this->lastInsertId());
+        return array("res" => $res, "ref" => $this->last_insert_id());
     }
     public function getStatus($id)
     {
@@ -68,7 +68,7 @@ class StatusModel extends Database
         $res = $this->execute("DELETE FROM statuses WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
-    public function deleteStatusesByShipmentId($id)
+    public function delete_statuses_by_shipment_id($id)
     {
         $res = $this->execute("DELETE FROM statuses WHERE shipmentId = ?", 'i', array($id));
         return array("res" => $res );

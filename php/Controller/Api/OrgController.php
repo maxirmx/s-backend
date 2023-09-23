@@ -30,9 +30,9 @@ require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
 class OrgController extends BaseController
 {
     protected function checkOrgExists($orgModel, $name, $id = null) {
-        $org = $orgModel->getOrgByName($name);
+        $org = $orgModel->get_org_by_name($name);
         if ($org && $id && $org['id'] != $id) {
-            $this->notSuccessful('Организация с таким названием уже зарегистрирована');
+            $this->not_successful('Организация с таким названием уже зарегистрирована');
         }
     }
 
@@ -43,53 +43,53 @@ class OrgController extends BaseController
             $orgModel = new OrgModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $this->fenceAdmin($user);
-                $data = $this->getPostData();
-                $this->checkParams($data, ['name']);
+                $this->fence_admin($user);
+                $data = $this->get_post_data();
+                $this->check_params($data, ['name']);
                 $this->checkOrgExists($orgModel, $data['name']);
-                $rsp = $orgModel->addOrg($data);
+                $rsp = $orgModel->add_org($data);
                 if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Не удалось добавить организацию');
+                    $this->not_successful('Не удалось добавить организацию');
                 }
             }
             elseif ($id == null && $m == 'GET') {
                 if ($user->isManager || $user->isAdmin) {
-                    $rsp = $orgModel->getOrgs();
+                    $rsp = $orgModel->get_orgs();
                 }
                 else {
-                    $rsp = $orgModel->getOrgsByUserId($user->id);
+                    $rsp = $orgModel->get_orgs_by_user_id($user->id);
                 }
             }
             elseif ($m == 'GET') {
-                $this->fenceManagerOrAdminOrSameOrg($id, $user);
-                $rsp = $orgModel->getOrg($id);
+                $this->fence_manager_or_admin_or_same_org($id, $user);
+                $rsp = $orgModel->get_org($id);
             }
             elseif ($m == 'PUT' && $id != null) {
-                $this->fenceAdmin($user);
-                $data = $this->getPostData();
-                $this->checkParams($data, ['name']);
+                $this->fence_admin($user);
+                $data = $this->get_post_data();
+                $this->check_params($data, ['name']);
                 $this->checkOrgExists($orgModel, $data['name'], $id);
-                $rsp = $orgModel->updateOrg($id, $data);
+                $rsp = $orgModel->update_org($id, $data);
             }
             elseif ($m == 'DELETE' && $id != null) {
-                $this->fenceAdmin($user);
-                $rsp = $orgModel->getOrg($id);
+                $this->fence_admin($user);
+                $rsp = $orgModel->get_org($id);
                 if (!$rsp) {
-                    $this->notSuccessful('Не удалось удалить организацию');
+                    $this->not_successful('Не удалось удалить организацию');
                 }
                 if ($rsp['num_users'] > 0) {
-                    $this->notSuccessful('Невозможно удалить организацию, если с ней связаны пользователи');
+                    $this->not_successful('Невозможно удалить организацию, если с ней связаны пользователи');
                 }
                 if ($rsp['num_shipments'] > 0 || $rsp['num_archieved'] > 0) {
-                    $this->notSuccessful('Невозможно удалить организацию, если с ней связаны отправления');
+                    $this->not_successful('Невозможно удалить организацию, если с ней связаны отправления');
                 }
-                $rsp = $orgModel->deleteOrg($id);
+                $rsp = $orgModel->delete_org($id);
                 if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Не удалось добавить организацию');
+                    $this->not_successful('Не удалось добавить организацию');
                 }
             }
             else  {
-                $this->notSupported();
+                $this->not_supported();
             }
         }
         catch (Error $e) {
@@ -98,7 +98,7 @@ class OrgController extends BaseController
         if (!$strErrorDesc) {
             $this->ok($rsp);
         } else {
-            $this->serverError($strErrorDesc);
+            $this->server_error($strErrorDesc);
         }
     }
 

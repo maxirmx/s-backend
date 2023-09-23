@@ -43,69 +43,69 @@ class StatusController extends BaseController
             $shipmentModel = new ShipmentModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $this->fenceManager($user);
-                $data = $this->getPostData();
-                $this->checkParams($data, ['shipmentId', 'status', 'date', 'location', 'dest', 'ddate']);
-                $statusModel->startTransaction();
-                $rsp = $shipmentModel->getShipment($data['shipmentId']);
+                $this->fence_manager($user);
+                $data = $this->get_post_data();
+                $this->check_params($data, ['shipmentId', 'status', 'date', 'location', 'dest', 'ddate']);
+                $statusModel->start_transaction();
+                $rsp = $shipmentModel->get_shipment($data['shipmentId']);
                 if (!$rsp) {
-                    $statusModel->rollbackTransaction();
-                    $this->notFound('Отправление не найдено.');
+                    $statusModel->rollback_transaction();
+                    $this->not_found('Отправление не найдено.');
                 }
-                $rsp = $statusModel->addStatus($data);
+                $rsp = $statusModel->add_status($data);
                 if ($rsp['res'] < 1) {
-                    $statusModel->rollbackTransaction();
-                    $this->notSuccessful('Не удалось добавить статус.');
+                    $statusModel->rollback_transaction();
+                    $this->not_successful('Не удалось добавить статус.');
                 }
-                $shipmentModel->updateDDate($data);
-                $statusModel->commitTransaction();
+                $shipmentModel->update_delivery_date($data);
+                $statusModel->commit_transaction();
             }
             elseif ($id != null && $method == 'GET') {
                 if ($this->dh) {
                     $rsp = $statusModel->getStatusesByShipmentId($id);
-                    $org = $shipmentModel->getOrgByShipmentId($id);
+                    $org = $shipmentModel->get_org_by_shipment_id($id);
                 }
                 else {
                     $rsp = $statusModel->getStatus($id);
                     if ($rsp) {
-                        $org = $shipmentModel->getOrgByShipmentId($rsp['shipmentId']);
+                        $org = $shipmentModel->get_org_by_shipment_id($rsp['shipmentId']);
                     }
                 }
                 if (!$org) {
-                    $this->notFound('Отправление не найдено.');
+                    $this->not_found('Отправление не найдено.');
                 }
                 /*
                     Если инициатор запроса - менеджер, он может видеть всё.
                     Иначе - только отправления своей организации.
                 */
-                if (!$user->isManager && !$this->checkOrg($org, $user)) {
+                if (!$user->isManager && !$this->check_org($org, $user)) {
                     $this->forbidden('Недостаточно прав для выполнения операции.');
                 }
             }
             elseif ($id != null && $method == 'PUT') {
-                $this->fenceManager($user);
-                $data = $this->getPostData();
-                $this->checkParams($data, ['status', 'date', 'location', 'dest', 'ddate']);
-                $statusModel->startTransaction();
-                $rsp = $shipmentModel->getShipmentIdByStatusId($id);
+                $this->fence_manager($user);
+                $data = $this->get_post_data();
+                $this->check_params($data, ['status', 'date', 'location', 'dest', 'ddate']);
+                $statusModel->start_transaction();
+                $rsp = $shipmentModel->get_shipment_id_by_status_id($id);
                 if (!$rsp) {
-                    $statusModel->rollbackTransaction();
-                    $this->notFound('Отправление не найдено.');
+                    $statusModel->rollback_transaction();
+                    $this->not_found('Отправление не найдено.');
                 }
                 $data['shipmentId'] = $rsp['shipmentId'];
                 $rsp = $statusModel->updateStatus($id, $data);
-                $shipmentModel->updateDDate($data);
-                $statusModel->commitTransaction();
+                $shipmentModel->update_delivery_date($data);
+                $statusModel->commit_transaction();
             }
             elseif ($id != null && $method == 'DELETE') {
-                $this->fenceAdmin($user);
+                $this->fence_admin($user);
                 $rsp = $statusModel->deleteStatus($id);
                 if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Не удалось удалить статус.');
+                    $this->not_successful('Не удалось удалить статус.');
                 }
             }
             else  {
-                $this->notSupported();
+                $this->not_supported();
             }
         }
         catch (Error $e) {
@@ -114,7 +114,7 @@ class StatusController extends BaseController
         if (!$strErrorDesc) {
             $this->ok($rsp);
         } else {
-            $this->serverError($strErrorDesc);
+            $this->server_error($strErrorDesc);
         }
     }
 }

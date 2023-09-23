@@ -26,13 +26,14 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 */
 require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
+require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
 
 class UserController extends BaseController
 {
-    protected function checkUserExists($userModel, $email, $id = null) {
-        $usr = $userModel->getUserByEmail($email);
+    protected function check_user_exists($userModel, $email, $id = null) {
+        $usr = $userModel->get_user_by_email($email);
         if ($usr && $usr['id'] != $id) {
-            $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
+            $this->not_successful('Пользователь с таким адресом электронной почты уже зарегистрирован');
         }
     }
 
@@ -41,49 +42,77 @@ class UserController extends BaseController
         $strErrorDesc = null;
         try {
             $userModel = new UserModel();
+            $orgModel = new OrgModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $data = $this->getPostData();
+                $data = $this->get_post_data();
                 if (!$user->isAdmin) {
                    $data['isEnabled'] = false;
                    $data['isManager'] = false;
                    $data['isAdmin'] = false;
-                   $data['orgId'] = -1;
+                   $data['orgs'] = [ ];
                 }
-                $this->checkParams($data, ['email', 'lastName', 'firstName', 'password', "isEnabled", "isManager", "isAdmin", "orgId"]);
-                $this->checkUserExists($userModel, $data['email']);
-                $rsp = $userModel->addUser($data);
-                if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Не далось добавить пользователя');
+                $this->check_params($data, ['email', 'lastName', 'firstName', 'password', "isEnabled", "isManager", "isAdmin", "orgs"]);
+                $this->check_user_exists($userModel, $data['email']);
+                $userModel->start_transaction();
+                try {
+                    $rsp = $userModel->addUser($data);
+                    if ($rsp['res'] < 1) {
+                        $this->not_successful('Не удалось добавить пользователя');
+                    }
+                    $rsp_o = $orgModel->insert_user_org_mappings($orgModel->last_insert_id(), $data['orgs']);
+                    if ($rsp_o['res'] != count($data['orgs'])) {
+                        $this->not_successful('Не удалось связать пользователя с организациями');
+                    }
+                    $rsp['res_o'] = $rsp_o['res'];
                 }
+                catch (Error $e) {
+                    $userModel->rollback_transaction();
+                    throw $e;
+                }
+                $userModel->commit_transaction();
             }
             elseif ($id == null && $method == 'GET') {
-                $this->fenceAdmin($user);
-                $rsp = $userModel->getUsers();
+                $this->fence_admin($user);
+                $rsp = $userModel->get_users();
             }
             elseif ($m == 'GET') {
-                $this->fenceAdminOrSameUser($id, $user);
-                $rsp = $userModel->getUser($id);
+                $this->fence_admin_or_same_user($id, $user);
+                $rsp = $userModel->get_user($id);
             }
             elseif ($m == 'PUT') {
                 if ($id==0) {
                     $this->forbidden('Настройки этого пользователя нельзя изменить');
                 }
-                $this->fenceAdminOrSameUser($id, $user);
-		        $data = $this->getPostData();
-                $this->checkParams($data, ['email', 'lastName', 'firstName', 'isEnabled', 'isManager', 'isAdmin', 'orgId']);
-                $this->checkUserExists($userModel, $data['email'], $id);
-                $rsp = $userModel->updateUser($id, $data, $user->isAdmin);
+                $this->fence_admin_or_same_user($id, $user);
+		        $data = $this->get_post_data();
+                $this->check_params($data, ['email', 'lastName', 'firstName', 'isEnabled', 'isManager', 'isAdmin', 'orgs']);
+                $this->check_user_exists($userModel, $data['email'], $id);
+                $userModel->start_transaction();
+                try {
+                    $rsp = $userModel->update_user($id, $data, $user->isAdmin);
+                    $orgModel->delete_user_org_mappings($id);
+                    $rsp_o = $orgModel->insert_user_org_mappings($id, $data['orgs']);
+                    if ($rsp_o['res'] != count($data['orgs'])) {
+                        $this->not_successful('Не удалось связать пользователя с организациями');
+                    }
+                }
+                catch (Error $e) {
+                    $userModel->rollback_transaction();
+                    throw $e;
+                }
+                $userModel->commit_transaction();
             }
             elseif ($m == 'DELETE') {
-                $this->fenceAdmin($user);
+                $this->fence_admin($user);
                 if ($id==0) {
                     $this->forbidden('Этого пользователя нельзя удалить');
                 }
-                $rsp = $userModel->deleteUser($id);
+                $rsp = $userModel->delete_user($id);
+                $orgModel->delete_user_org_mappings($id);
             }
             else  {
-                $this->notSupported();
+                $this->not_supported();
             }
         }
         catch (Error $e) {
@@ -92,9 +121,8 @@ class UserController extends BaseController
         if (!$strErrorDesc) {
             $this->ok($rsp);
         } else {
-            $this->serverError($strErrorDesc);
+            $this->server_error($strErrorDesc);
         }
     }
-
 }
 ?>

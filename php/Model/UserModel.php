@@ -31,57 +31,61 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 class UserModel extends Database
 {
     protected const FLDS = "id, email, lastName, firstName, patronimic, isEnabled, isManager, isAdmin";
-    protected const FLDS_INS = "email, lastName, firstName, patronimic, orgId, isEnabled, isManager, isAdmin, password";
-    protected const FLDS_UPDF = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, password=?";
-    protected const FLDS_UPD = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?";
-    protected const FLDS_UPDFC = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?, password=?";
-    protected const FLDS_UPDC = "email=?, lastName=?, firstName=?, patronimic=?, orgId=?, isEnabled=?, isManager=?, isAdmin=?";
+    protected const FLDS_INS = "email, lastName, firstName, patronimic, isEnabled, isManager, isAdmin, password";
+    protected const FLDS_UPDF = "email=?, lastName=?, firstName=?, patronimic=?, password=?";
+    protected const FLDS_UPD = "email=?, lastName=?, firstName=?, patronimic=?";
+    protected const FLDS_UPDFC = "email=?, lastName=?, firstName=?, patronimic=?, isEnabled=?, isManager=?, isAdmin=?, password=?";
+    protected const FLDS_UPDC = "email=?, lastName=?, firstName=?, patronimic=?,  isEnabled=?, isManager=?, isAdmin=?";
 
-    protected function enrichWithOrgs($user) {
+    protected function enrich_with_orgs($user) {
         if ($user) {
             $user['orgs'] = array();
             $orgs = $this->select("SELECT orgId FROM user_org_mappings WHERE userId = ?", 'i', array($user['id']));
-            foreach ($orgs as $org) {
-                $user['orgs'][] = $org;
+            if (count($orgs) > 0) {
+                foreach ($orgs as $org) {
+                    $user['orgs'][] = $org;
+                }
+            }
+            else {
+                $user['orgs'][] = array("orgId" => -1);
             }
         }
         return $user;
     }
-    public function getUsers()
+    public function get_users()
     {
         $users = $this->select("SELECT " . UserModel::FLDS . " FROM users ORDER BY id ASC");
         foreach ($users as &$user) {
-            $user = $this->enrichWithOrgs($user);
+            $user = $this->enrich_with_orgs($user);
         }
         return $users;
     }
     public function addUser($data)
     {
         $email = strtolower($data['email']);
-        $orgId = isset($data['orgId']) ? $data['orgId'] : -1;
         $patronimic = isset($data['patronimic']) ? $data['patronimic'] : '';
         $password = password_hash($data['password'], PASSWORD_DEFAULT);
-        $res = $this->execute("INSERT INTO users (".UserModel::FLDS_INS.") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    'ssssiiiis',
+        $res = $this->execute("INSERT INTO users (".UserModel::FLDS_INS.") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    'ssssiiis',
                     array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                          $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                                   $data['isEnabled'], $data['isManager'], $data['isAdmin'],
                           $password)
                 );
-        return array("res" => $res, "ref" => $this->lastInsertId());
+        return array("res" => $res, "ref" => $this->last_insert_id());
     }
-    public function getUser($id)
+    public function get_user($id)
     {
         $result = $this->select("SELECT " . UserModel::FLDS . " FROM users WHERE id = ?", 'i', array($id));
         $res = !is_null($result) && count($result) > 0 ? $result[0] : null;
-        return $this->enrichWithOrgs($res);
+        return $this->enrich_with_orgs($res);
     }
-    public function getUserByEmail($email)
+    public function get_user_by_email($email)
     {
         $result = $this->select("SELECT * FROM users WHERE email = ?", 's', array(strtolower($email)));
         $res = !is_null($result) && count($result) > 0 ? $result[0] : null;
-        return $this->enrichWithOrgs($res);
+        return $this->enrich_with_orgs($res);
     }
-    public function updateUser($id, $data, $credentials = false)
+    public function update_user($id, $data, $credentials = false)
     {
         $email = strtolower($data['email']);
         $orgId = isset($data['orgId']) ? $data['orgId'] : -1;
@@ -91,18 +95,18 @@ class UserModel extends Database
             if ($credentials) {
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPDFC." WHERE id = ?",
-                    'ssssiiiisi',
+                    'ssssiiisi',
                     array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                          $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                                   $data['isEnabled'], $data['isManager'], $data['isAdmin'],
                           $password, $id)
                 );
             }
             else {
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPDF." WHERE id = ?",
-                    'ssssisi',
+                    'sssssi',
                     array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                          $orgId,  $password, $id)
+                                   $password, $id)
                 );
             }
         }
@@ -110,9 +114,9 @@ class UserModel extends Database
             if ($credentials) {
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPDC." WHERE id = ?",
-                    'ssssiiiii',
+                    'ssssiiii',
                     array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                          $orgId,  $data['isEnabled'], $data['isManager'], $data['isAdmin'],
+                                   $data['isEnabled'], $data['isManager'], $data['isAdmin'],
                           $id)
                 );
             }
@@ -127,13 +131,13 @@ class UserModel extends Database
         }
         return array("res" => $res );
     }
-    public function deleteUser($id)
+    public function delete_user($id)
     {
         $res = $this->execute("DELETE FROM users WHERE id = ?", 'i', array($id));
         return array("res" => $res );
     }
 
-    public function enableUserByEmail($email)
+    public function enable_user_by_email($email)
     {
         $res = $this->execute("UPDATE users SET isEnabled = 1 WHERE email = ?", 's', array($email));
         return array("res" => $res );

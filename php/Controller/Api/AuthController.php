@@ -31,14 +31,14 @@ require_once PROJECT_ROOT_PATH . "/Controller/Libs/jwt.php";
 
 class AuthController extends BaseController
 {
-    public function checkAuth() {
+    public function check_auth() {
         $token = get_bearer_token();
         if (!$token) {
-            $this->notAuthorized('Необходимо войти в систему');
+            $this->not_authorized('Необходимо войти в систему');
         }
         $user = is_jwt_valid($token, JWT_SECRET);
         if (!$user) {
-            $this->notAuthorized('Необходимо войти в систему');
+            $this->not_authorized('Необходимо войти в систему');
         }
         if (!$user->isEnabled) {
             $this->forbidden('Учетная запись не активна.');
@@ -46,7 +46,7 @@ class AuthController extends BaseController
         return $user;
     }
 
-    protected function preProcessToken($op) {
+    protected function pre_process_token($op) {
         if ($op == 'register') {
             $g = 'для регистрации';
         }
@@ -56,15 +56,15 @@ class AuthController extends BaseController
         else {
             $g = '';
         }
-        $data = $this->getPostData();
+        $data = $this->get_post_data();
         $jwt = $data['jwt'];
         if (!$jwt) {
-            $this->notFound("Ссылка $g не найдена.");
+            $this->not_found("Ссылка $g не найдена.");
         }
         $linkModel = new LinkModel();
         $res = $linkModel->deleteLink($jwt);
         if ($res['res']<= 0) {
-            $this->notFound("Ссылка $g не найдена. Вероятно, её уже использовали.");
+            $this->not_found("Ссылка $g не найдена. Вероятно, её уже использовали.");
         }
         $user = is_jwt_valid($jwt, JWT_SECRET);
 
@@ -86,12 +86,12 @@ class AuthController extends BaseController
 
     protected function login($uModel, $email, $password)
     {
-        $rsp = $uModel->getUserByEmail($email);
+        $rsp = $uModel->get_user_by_email($email);
         if (!$rsp) {
-            $this->notAuthorized('Неправильный адрес электронной почты или пароль');
+            $this->not_authorized('Неправильный адрес электронной почты или пароль');
         }
         if ($password && !password_verify($password, $rsp['password'])) {
-            $this->notAuthorized('Неправильный адрес электронной почты или пароль');
+            $this->not_authorized('Неправильный адрес электронной почты или пароль');
         }
         if (!$rsp['isEnabled']) {
             $this->forbidden('Учетная запись не активна.');
@@ -107,14 +107,14 @@ class AuthController extends BaseController
         return $rsp;
     }
 
-    protected function url4SendLink($jwt, $host, $method) {
+    protected function url_for_send_link($jwt, $host, $method) {
         if (!$host) {
             $host = "http".(!empty($_SERVER['HTTPS'])?"s":"")."://".$_SERVER['SERVER_NAME'];
         }
         $url = $host.'/?'.$method.'='.$jwt;
         return $url;
     }
-    protected function sendLink($to, $subject, $message) {
+    protected function send_link($to, $subject, $message) {
         $headers = "MIME-Version: 1.0" . "\r\n";
         $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
         $headers .= 'From: ' . SERVICE_EMAIL . "\r\n";
@@ -128,9 +128,9 @@ class AuthController extends BaseController
             $userModel = new UserModel();
             $m = strtoupper($method);
             if ($id == 'login' && $m == 'POST') {
-                $data = $this->getPostData();
+                $data = $this->get_post_data();
                 if (!isset($data['email']) || !isset($data['password'])) {
-                    $this->missedParameter();
+                    $this->missed_parameter();
                 }
                 $rsp = $this->login($userModel, $data['email'], $data['password']);
             }
@@ -138,7 +138,7 @@ class AuthController extends BaseController
                 $linkModel = new LinkModel();
                 $linkModel->flushLinks();
 
-                $data = $this->getPostData();
+                $data = $this->get_post_data();
                 $data['isEnabled'] = false;
                 $data['isManager'] = false;
                 $data['isAdmin'] = false;
@@ -146,7 +146,7 @@ class AuthController extends BaseController
 
                 $ursp = $userModel->addUser($data);
                 if ($ursp['res'] < 1) {
-                    $this->notSuccessful('Пользователь с таким адресом электронной почты уже зарегистрирован');
+                    $this->not_successful('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
                 $payload = array('email' => $data['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
@@ -154,7 +154,7 @@ class AuthController extends BaseController
                 $linkModel->addLink($jwt, $payload['exp']);
                 $rsp = array('res'=> 'ok');
 
-                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, $id);
+                $url = $this->url_for_send_link($jwt, isset($data['host']) ? $data['host'] : null, $id);
                 $subject = 'Регистрация в системе Track and Trace';
                 $message = "Добрый день ! <br/><br/>
                 Для завершения регистрации в системе Track and Trace перейдите
@@ -163,15 +163,15 @@ class AuthController extends BaseController
                 Если Вы не запрашивали регистрацию, просто проигнорируйте это письмо.<br/><br/>
                 Спасибо, что Вы с нами !<br/>";
 
-                $this->sendLink($data['email'], $subject, $message);
+                $this->send_link($data['email'], $subject, $message);
             }
             elseif ($id == 'recover' && $m == 'POST') {
                 $linkModel = new LinkModel();
                 $linkModel->flushLinks();
-                $data = $this->getPostData();
-                $user = $userModel->getUserByEmail($data['email']);
+                $data = $this->get_post_data();
+                $user = $userModel->get_user_by_email($data['email']);
                 if (!$user) {
-                    $this->notFound('Пользователь с таким адресом электронной почты не зарегистрирован');
+                    $this->not_found('Пользователь с таким адресом электронной почты не зарегистрирован');
                 }
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
                 $payload = array('email' => $user['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
@@ -179,7 +179,7 @@ class AuthController extends BaseController
                 $linkModel->addLink($jwt, $payload['exp']);
                 $rsp = is_jwt_valid($jwt, JWT_SECRET); //array('res'=> 'ok');
 
-                $url = $this->url4SendLink($jwt, isset($data['host']) ? $data['host'] : null, $id);
+                $url = $this->url_for_send_link($jwt, isset($data['host']) ? $data['host'] : null, $id);
                 $subject = 'Восстановление пароля к системе Track and Trace';
                 $message = "Добрый день ! <br/><br/>
                 Для восстановления пароля к системе Track and Trace перейдите
@@ -188,24 +188,24 @@ class AuthController extends BaseController
                 Если Вы не запрашивали восстановления пароля, просто проигнорируйте это письмо.<br/><br/>
                 Спасибо, что Вы с нами !<br/>";
 
-                $this->sendLink($data['email'], $subject, $message);
+                $this->send_link($data['email'], $subject, $message);
             }
             elseif ($id == 'register' && $m == 'PUT') {
-                $user = $this->preProcessToken($id);
+                $user = $this->pre_process_token($id);
                 $userModel = new UserModel();
-                $userModel->enableUserByEmail($user->email);
+                $userModel->enable_user_by_email($user->email);
                 $rsp = $this->login($userModel, $user->email, null);
             }
             elseif ($id == 'recover' && $m == 'PUT') {
-                $user = $this->preProcessToken($id);
+                $user = $this->pre_process_token($id);
                 $userModel = new UserModel();
                 $rsp = $this->login($userModel, $user->email, null);
             }
             elseif ($id == 'check' && $m == 'GET') {
-                $rsp = $this->checkAuth();
+                $rsp = $this->check_auth();
             }
             else  {
-                $this->notSupported();
+                $this->not_supported();
             }
         }
         catch (Error $e) {
@@ -214,7 +214,7 @@ class AuthController extends BaseController
         if (!$strErrorDesc) {
             $this->ok($rsp);
         } else {
-            $this->serverError($strErrorDesc);
+            $this->server_error($strErrorDesc);
         }
     }
 

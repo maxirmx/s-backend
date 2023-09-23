@@ -48,7 +48,7 @@ class Database
     public function select($query = "" , $types = "", $params = [])
     {
         try {
-            $stmt = $this->executeStatement( $query , $types, $params );
+            $stmt = $this->execute_statement( $query , $types, $params );
             $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
             return $result;
@@ -60,7 +60,7 @@ class Database
     public function execute($query = "" , $types = "", $params = [])
     {
         try {
-            $stmt = $this->executeStatement( $query , $types, $params );
+            $stmt = $this->execute_statement( $query , $types, $params );
             $res = $stmt->affected_rows;
             $stmt->close();
         } catch(Exception $e) {
@@ -68,7 +68,7 @@ class Database
         }
         return $res;
     }
-    private function executeStatement($query = "" , $types= "", $params = [])
+    private function execute_statement($query = "" , $types= "", $params = [])
     {
         try {
             $stmt = self::$connection->prepare( $query );
@@ -85,22 +85,22 @@ class Database
         }
     }
 
-    public function startTransaction()
+    public function start_transaction()
     {
         self::$connection->begin_transaction();
     }
 
-    public function commitTransaction()
+    public function commit_transaction()
     {
         self::$connection->commit();
     }
 
-    public function rollbackTransaction()
+    public function rollback_transaction()
     {
         self::$connection->rollback();
     }
 
-    public function lastInsertId()
+    public function last_insert_id()
     {
 	    return self::$connection->insert_id;
     }

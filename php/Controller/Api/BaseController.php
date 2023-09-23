@@ -33,14 +33,14 @@ class BaseController
 */
     public function __call($name, $arguments)
     {
-        $this->notFound('Unknown method:' . $name);
+        $this->not_found('Unknown method:' . $name);
     }
     /**
 * Get URI elements.
 *
 * @return array
 */
-    protected function getUriSegments()
+    protected function get_uri_segments()
     {
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $uri = explode( '/', $uri );
@@ -51,7 +51,7 @@ class BaseController
 *
 * @return array
 */
-    protected function getQueryStringParams()
+    protected function get_query_string_params()
     {
         return parse_str($_SERVER['QUERY_STRING'], $query);
     }
@@ -61,7 +61,7 @@ class BaseController
 * @param mixed $data
 * @param string $httpHeader
 */
-    protected function sendOutput($data, $httpHeaders=array())
+    protected function send_output($data, $httpHeaders=array())
     {
         header_remove('Set-Cookie');
 
@@ -85,123 +85,137 @@ class BaseController
         exit;
     }
 
-    protected function checkOrg($data, $user) {
-        return isset($data['orgs']) &&
-               in_array($user->orgId, $data['orgs'], true);
+    protected function check_org($data, $user)
+    {
+        if (isset($data['orgId'])) {
+            foreach ($user->orgs as $org) {
+                if ($data['orgId'] == $org->orgId) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
-    protected function fenceAdmin($user) {
+    protected function fence_admin($user)
+    {
         if (!$user->isAdmin) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function fenceManagerOrAdmin($user) {
+    protected function fence_manager_or_admin($user)
+    {
         if (!$user->isManager && !$user->isAdmin) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function fenceManagerAndAdmin($user) {
+    protected function fence_manager_and_admin($user)
+    {
         if (!$user->isManager || !$user->isAdmin) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function fenceManager($user) {
+    protected function fence_manager($user)
+    {
         if (!$user->isManager) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function fenceAdminOrSameOrg($orgId, $user) {
+    protected function fence_admin_or_same_org($orgId, $user)
+    {
         if (!$user->isAdmin && !in_array($orgId, $user->orgs, true)) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function fenceManagerOrAdminOrSameOrg($orgId, $user) {
+    protected function fence_manager_or_admin_or_same_org($orgId, $user)
+    {
         if (!$user->isAdmin && !$user->isManager && !in_array($orgId, $user->orgs, true)) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function fenceAdminOrSameUser($userId, $user) {
+    protected function fence_admin_or_same_user($userId, $user)
+    {
         if (!$user->isAdmin && $user->id != $userId) {
             $this->forbidden('Недостаточно прав для выполнения операции.');
         }
     }
 
-    protected function getPostData()
+    protected function get_post_data()
     {
         $data = file_get_contents('php://input');
         return json_decode($data, true);
     }
 
-    public function notAuthorized($msg)
+    public function not_authorized($msg)
     {
-        $this->sendOutput(json_encode(array('message' => $msg)),
+        $this->send_output(json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 401 Unauthorized')
         );
     }
 
     public function forbidden($msg)
     {
-        $this->sendOutput(json_encode(array('message' => $msg)),
+        $this->send_output(json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 403 Forbidden')
         );
     }
 
-    protected function notSupported()
+    protected function not_supported()
     {
-        $this->sendOutput(json_encode(array('message' => 'Метод не поддерживается')),
+        $this->send_output(json_encode(array('message' => 'Метод не поддерживается')),
             array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
 
-    protected function missedParameter($param = null)
+    protected function missed_parameter($param = null)
     {
-        $this->sendOutput(json_encode(array('message' => 'Не задан необходимый параметр запроса' . ($param ? ': ' . $param : ''))),
+        $this->send_output(json_encode(array('message' => 'Не задан необходимый параметр запроса' . ($param ? ': ' . $param : ''))),
             array('Content-Type: application/json', 'HTTP/1.1 400 Bad Request')
         );
     }
 
-    protected function serverError($desc)
+    protected function server_error($desc)
     {
-        $this->sendOutput(json_encode(array('message' => $desc)),
+        $this->send_output(json_encode(array('message' => $desc)),
         array('Content-Type: application/json', 'HTTP/1.1 500 Internal Server Error')
         );
     }
 
     protected function ok($rsp)
     {
-        $this->sendOutput(
+        $this->send_output(
             json_encode($rsp),
             array('Content-Type: application/json', 'HTTP/1.1 200 OK')
         );
     }
 
-    protected function notSuccessful($msg)
+    protected function not_successful($msg)
     {
-        $this->sendOutput(
+        $this->send_output(
             json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 409 Conflict')
         );
     }
 
-    protected function notFound($msg)
+    protected function not_found($msg)
     {
-        $this->sendOutput(
+        $this->send_output(
             json_encode(array('message' => $msg)),
             array('Content-Type: application/json', 'HTTP/1.1 404 Not Found')
         );
     }
 
-    protected function checkParams($data, $params)
+    protected function check_params($data, $params)
     {
         foreach ($params as $param) {
             if (!isset($data[$param])) {
-                $this->missedParameter($param);
+                $this->missed_parameter($param);
             }
           }
     }
