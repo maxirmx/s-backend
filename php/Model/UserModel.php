@@ -42,7 +42,7 @@ class UserModel extends Database
             $user['orgs'] = array();
             $orgs = $this->select("SELECT orgId FROM user_org_mappings WHERE userId = ?", 'i', array($user['id']));
             foreach ($orgs as $org) {
-                $user['orgs'][] = $org['orgId'];
+                $user['orgs'][] = $org;
             }
         }
         return $user;
