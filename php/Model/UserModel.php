@@ -60,16 +60,15 @@ class UserModel extends Database
         }
         return $users;
     }
-    public function addUser($data)
+    public function add_user($data)
     {
         $email = strtolower($data['email']);
         $patronimic = isset($data['patronimic']) ? $data['patronimic'] : '';
         $password = password_hash($data['password'], PASSWORD_DEFAULT);
         $res = $this->execute("INSERT INTO users (".UserModel::FLDS_INS.") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     'ssssiiis',
-                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                                   $data['isEnabled'], $data['isManager'], $data['isAdmin'],
-                          $password)
+                    array($email,             $data['lastName'],  $data['firstName'], $patronimic,
+                          $data['isEnabled'], $data['isManager'], $data['isAdmin'],   $password)
                 );
         return array("res" => $res, "ref" => $this->last_insert_id());
     }
@@ -88,7 +87,6 @@ class UserModel extends Database
     public function update_user($id, $data, $credentials = false)
     {
         $email = strtolower($data['email']);
-        $orgId = isset($data['orgId']) ? $data['orgId'] : -1;
         $patronimic = isset($data['patronimic']) ? $data['patronimic'] : '';
         if (isset($data['password'])) {
             $password = password_hash($data['password'], PASSWORD_DEFAULT);
@@ -96,17 +94,16 @@ class UserModel extends Database
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPDFC." WHERE id = ?",
                     'ssssiiisi',
-                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                                   $data['isEnabled'], $data['isManager'], $data['isAdmin'],
-                          $password, $id)
+                    array($email,             $data['lastName'],  $data['firstName'], $patronimic,
+                          $data['isEnabled'], $data['isManager'], $data['isAdmin'],   $password,    $id)
                 );
             }
             else {
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPDF." WHERE id = ?",
                     'sssssi',
-                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                                   $password, $id)
+                    array($email,    $data['lastName'],  $data['firstName'], $patronimic,
+                          $password, $id)
                 );
             }
         }
@@ -115,17 +112,15 @@ class UserModel extends Database
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPDC." WHERE id = ?",
                     'ssssiiii',
-                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                                   $data['isEnabled'], $data['isManager'], $data['isAdmin'],
-                          $id)
+                    array($email,             $data['lastName'],  $data['firstName'], $patronimic,
+                          $data['isEnabled'], $data['isManager'], $data['isAdmin'],   $id)
                 );
             }
             else {
                 $res = $this->execute(
                     "UPDATE users SET ".UserModel::FLDS_UPD." WHERE id = ?",
-                    'ssssii',
-                    array($email,  $data['lastName'],  $data['firstName'], $patronimic,
-                          $orgId,  $id)
+                    'ssssi',
+                    array($email,  $data['lastName'],  $data['firstName'], $patronimic, $id)
                 );
             }
         }

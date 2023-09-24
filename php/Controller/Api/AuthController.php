@@ -62,7 +62,7 @@ class AuthController extends BaseController
             $this->not_found("Ссылка $g не найдена.");
         }
         $linkModel = new LinkModel();
-        $res = $linkModel->deleteLink($jwt);
+        $res = $linkModel->delete_link($jwt);
         if ($res['res']<= 0) {
             $this->not_found("Ссылка $g не найдена. Вероятно, её уже использовали.");
         }
@@ -136,7 +136,7 @@ class AuthController extends BaseController
             }
             elseif ($id == 'register' && $m == 'POST') {
                 $linkModel = new LinkModel();
-                $linkModel->flushLinks();
+                $linkModel->flush_links();
 
                 $data = $this->get_post_data();
                 $data['isEnabled'] = false;
@@ -144,14 +144,14 @@ class AuthController extends BaseController
                 $data['isAdmin'] = false;
                 $data['orgId'] = -1;
 
-                $ursp = $userModel->addUser($data);
+                $ursp = $userModel->add_user($data);
                 if ($ursp['res'] < 1) {
                     $this->not_successful('Пользователь с таким адресом электронной почты уже зарегистрирован');
                 }
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
                 $payload = array('email' => $data['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
-                $linkModel->addLink($jwt, $payload['exp']);
+                $linkModel->add_link($jwt, $payload['exp']);
                 $rsp = array('res'=> 'ok');
 
                 $url = $this->url_for_send_link($jwt, isset($data['host']) ? $data['host'] : null, $id);
@@ -167,7 +167,7 @@ class AuthController extends BaseController
             }
             elseif ($id == 'recover' && $m == 'POST') {
                 $linkModel = new LinkModel();
-                $linkModel->flushLinks();
+                $linkModel->flush_links();
                 $data = $this->get_post_data();
                 $user = $userModel->get_user_by_email($data['email']);
                 if (!$user) {
@@ -176,7 +176,7 @@ class AuthController extends BaseController
                 $headers = array('alg'=>'HS256','typ'=>'JWT');
                 $payload = array('email' => $user['email'], 'type' => $id, 'exp' => (time() + JWT_EXPIRE));
                 $jwt = generate_jwt($headers, $payload, JWT_SECRET);
-                $linkModel->addLink($jwt, $payload['exp']);
+                $linkModel->add_link($jwt, $payload['exp']);
                 $rsp = is_jwt_valid($jwt, JWT_SECRET); //array('res'=> 'ok');
 
                 $url = $this->url_for_send_link($jwt, isset($data['host']) ? $data['host'] : null, $id);

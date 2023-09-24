@@ -30,12 +30,12 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 
 class StatusModel extends Database
 {
-    public function getStatuses()
+    public function get_statuses()
     {
         return $this->select("SELECT * FROM statuses ORDER BY `date` DESC");
     }
 
-    public function getStatusesByShipmentId($id)
+    public function get_statuses_by_shipment_id($id)
     {
         return $this->select("SELECT * FROM statuses WHERE shipmentId = ? ORDER BY `date` DESC, id DESC", 'i', array($id));
     }
@@ -49,12 +49,12 @@ class StatusModel extends Database
                                array($data['shipmentId'], $data['status'], $data['date'], $data['location'], $data['comment']));
         return array("res" => $res, "ref" => $this->last_insert_id());
     }
-    public function getStatus($id)
+    public function get_status($id)
     {
         $result = $this->select("SELECT * FROM statuses WHERE id = ?", 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
-    public function updateStatus($id, $data)
+    public function update_status($id, $data)
     {
         if (!isset($data['comment'])) {
             $data['comment'] = "";
@@ -63,7 +63,7 @@ class StatusModel extends Database
                                array($data['status'], $data['date'], $data['location'], $data['comment'], $id));
         return array("res" => $res );
     }
-    public function deleteStatus($id)
+    public function delete_status($id)
     {
         $res = $this->execute("DELETE FROM statuses WHERE id = ?", 'i', array($id));
         return array("res" => $res );

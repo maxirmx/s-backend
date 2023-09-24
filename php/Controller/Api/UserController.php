@@ -56,7 +56,7 @@ class UserController extends BaseController
                 $this->check_user_exists($userModel, $data['email']);
                 $userModel->start_transaction();
                 try {
-                    $rsp = $userModel->addUser($data);
+                    $rsp = $userModel->add_user($data);
                     if ($rsp['res'] < 1) {
                         $this->not_successful('Не удалось добавить пользователя');
                     }
@@ -96,6 +96,7 @@ class UserController extends BaseController
                     if ($rsp_o['res'] != count($data['orgs'])) {
                         $this->not_successful('Не удалось связать пользователя с организациями');
                     }
+                    $rsp['res_o'] = $rsp_o['res'];
                 }
                 catch (Error $e) {
                     $userModel->rollback_transaction();

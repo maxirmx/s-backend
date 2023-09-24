@@ -62,11 +62,11 @@ class StatusController extends BaseController
             }
             elseif ($id != null && $method == 'GET') {
                 if ($this->dh) {
-                    $rsp = $statusModel->getStatusesByShipmentId($id);
+                    $rsp = $statusModel->get_statuses_by_shipment_id($id);
                     $org = $shipmentModel->get_org_by_shipment_id($id);
                 }
                 else {
-                    $rsp = $statusModel->getStatus($id);
+                    $rsp = $statusModel->get_status($id);
                     if ($rsp) {
                         $org = $shipmentModel->get_org_by_shipment_id($rsp['shipmentId']);
                     }
@@ -93,13 +93,13 @@ class StatusController extends BaseController
                     $this->not_found('Отправление не найдено.');
                 }
                 $data['shipmentId'] = $rsp['shipmentId'];
-                $rsp = $statusModel->updateStatus($id, $data);
+                $rsp = $statusModel->update_status($id, $data);
                 $shipmentModel->update_delivery_date($data);
                 $statusModel->commit_transaction();
             }
             elseif ($id != null && $method == 'DELETE') {
                 $this->fence_admin($user);
-                $rsp = $statusModel->deleteStatus($id);
+                $rsp = $statusModel->delete_status($id);
                 if ($rsp['res'] < 1) {
                     $this->not_successful('Не удалось удалить статус.');
                 }

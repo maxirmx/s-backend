@@ -30,17 +30,17 @@ require_once PROJECT_ROOT_PATH . "/Model/Database.php";
 
 class LinkModel extends Database
 {
-    public function addLink($link, $expire)
+    public function add_link($link, $expire)
     {
         $res = $this->execute("INSERT INTO links (link, expire) VALUES (?, ?)", 'si', array($link, $expire));
         return array("res" => $res );
     }
-    public function flushLinks()
+    public function flush_links()
     {
         $res = $this->execute("DELETE FROM links WHERE expire < ?", 'i', array(time()));
         return array("res" => $res );
     }
-    public function deleteLink($link)
+    public function delete_link($link)
     {
         $res = $this->execute("DELETE FROM links WHERE link = ?", 's', array($link));
         return array("res" => $res );

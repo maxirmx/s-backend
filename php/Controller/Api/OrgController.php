@@ -29,7 +29,7 @@ require_once PROJECT_ROOT_PATH . "/Model/OrgModel.php";
 
 class OrgController extends BaseController
 {
-    protected function checkOrgExists($orgModel, $name, $id = null) {
+    protected function check_org_exists($orgModel, $name, $id = null) {
         $org = $orgModel->get_org_by_name($name);
         if ($org && $id && $org['id'] != $id) {
             $this->not_successful('Организация с таким названием уже зарегистрирована');
@@ -46,7 +46,7 @@ class OrgController extends BaseController
                 $this->fence_admin($user);
                 $data = $this->get_post_data();
                 $this->check_params($data, ['name']);
-                $this->checkOrgExists($orgModel, $data['name']);
+                $this->check_org_exists($orgModel, $data['name']);
                 $rsp = $orgModel->add_org($data);
                 if ($rsp['res'] < 1) {
                     $this->not_successful('Не удалось добавить организацию');
@@ -68,7 +68,7 @@ class OrgController extends BaseController
                 $this->fence_admin($user);
                 $data = $this->get_post_data();
                 $this->check_params($data, ['name']);
-                $this->checkOrgExists($orgModel, $data['name'], $id);
+                $this->check_org_exists($orgModel, $data['name'], $id);
                 $rsp = $orgModel->update_org($id, $data);
             }
             elseif ($m == 'DELETE' && $id != null) {

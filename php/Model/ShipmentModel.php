@@ -102,7 +102,7 @@ class ShipmentModel extends Database
             WHERE b.shipmentId IS NULL)
         AS first_status
         ON shipments.id = first_status.shipmentId
-        WHERE shipments.isArchieved = ? AND shipments.orgId =
+        WHERE shipments.isArchieved = ? AND shipments.orgId IN
     ';
 
     protected const ARCHIEVE_REQ =
