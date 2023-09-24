@@ -33,50 +33,82 @@ class OrgModel extends Database
     protected const ORGS_REQ =
     '
         SELECT *,
-                (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
+                (SELECT COUNT(user_org_mappings.userId) FROM `user_org_mappings` WHERE user_org_mappings.orgId = organizations.id) as num_users,
                 (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments,
                 (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
-                FROM `organizations`
+        FROM `organizations`
+        ORDER BY organizations.id ASC
+    ';
+
+    protected const ORGS_BY_U_REQ =
+    '
+        SELECT *,
+                (SELECT COUNT(user_org_mappings.userId) FROM `user_org_mappings` WHERE user_org_mappings.orgId = organizations.id) as num_users,
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id) as num_shipments,
+                (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
+        FROM `organizations`
+        WHERE organizations.id IN (SELECT user_org_mappings.orgId FROM `user_org_mappings` WHERE user_org_mappings.userId = ?)
         ORDER BY organizations.id ASC
     ';
 
     protected const ORG_REQ =
     '
         SELECT *,
-            (SELECT COUNT(users.id) FROM `users` WHERE users.orgId = organizations.id) as num_users,
+        (SELECT COUNT(user_org_mappings.userId) FROM `user_org_mappings` WHERE user_org_mappings.orgId = organizations.id) as num_users,
             (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 0) as num_shipments,
             (SELECT COUNT(shipments.id) FROM `shipments` WHERE shipments.orgId = organizations.id AND shipments.isArchieved = 1) as num_archieved
         FROM `organizations`
         WHERE organizations.id = ?
     ';
 
-    public function getOrgs()
+    public function get_orgs()
     {
         return $this->select(OrgModel::ORGS_REQ);
     }
-    public function addOrg($data)
+    public function add_org($data)
     {
         $res = $this->execute("INSERT INTO organizations (name) VALUES (?)", 's', array($data['name']));
-        return array("res" => $res, "ref" => $this->lastInsertId());
+        return array("res" => $res, "ref" => $this->last_insert_id());
     }
-    public function getOrg($id)
+    public function get_org($id)
     {
         $result = $this->select(OrgModel::ORG_REQ, 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
-    public function getOrgByName($name)
+    public function get_orgs_by_user_id($userId) {
+        return $this->select(OrgModel::ORGS_BY_U_REQ, 'i', array($userId));
+    }
+    public function get_org_by_name($name)
     {
         $result = $this->select("SELECT * FROM organizations WHERE organizations.name = ?", 's', array($name));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
-    public function updateOrg($id, $data)
+    public function update_org($id, $data)
     {
         $res = $this->execute("UPDATE organizations SET name = ? WHERE id = ?", 'si', array($data['name'], $id));
         return array("res" => $res );
     }
-    public function deleteOrg($id)
+    public function delete_org($id)
     {
         $res = $this->execute("DELETE FROM organizations WHERE id = ?", 'i', array($id));
+        return array("res" => $res );
+    }
+    public function insert_user_org_mappings($userId, $orgs)
+    {
+        $res = 0;
+        foreach ($orgs as $org) {
+            if ($org['orgId'] != -1) {
+                $res += $this->execute("INSERT INTO user_org_mappings (userId, orgId) VALUES (?, ?)", 'ii', array($userId, $org['orgId']));
+            }
+            else {
+                $res++;
+            }
+        }
+        return array("res" => $res);
+    }
+    public function delete_user_org_mappings($userId)
+    {
+        $res = $this->execute("DELETE FROM user_org_mappings WHERE userId = ?", 'i', array($userId));
         return array("res" => $res );
     }
 }

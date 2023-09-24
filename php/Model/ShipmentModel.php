@@ -102,8 +102,7 @@ class ShipmentModel extends Database
             WHERE b.shipmentId IS NULL)
         AS first_status
         ON shipments.id = first_status.shipmentId
-        WHERE shipments.orgId = ? AND shipments.isArchieved = ?
-        ORDER BY shipments.id ASC
+        WHERE shipments.isArchieved = ? AND shipments.orgId IN
     ';
 
     protected const ARCHIEVE_REQ =
@@ -119,74 +118,84 @@ class ShipmentModel extends Database
         return array("res" => $res );
     }
 
-    public function getFilteredShipments($orgId, $isArchieved = false)
+    public function get_filtered_shipments($orgs, $isArchieved = false)
     {
-        return $this->select(ShipmentModel::FILTERED_SHIPMENTS_REQ, 'ii', array($orgId, $isArchieved ? 1 : 0));
+        if (count($orgs) ==0) {
+            return [];
+        }
+        $q = ShipmentModel::FILTERED_SHIPMENTS_REQ;
+        $d = '( ';
+        foreach ($orgs as $org) {
+            $q = $q . $d . $org->orgId;
+            $d = ', ';
+        }
+        $q = $q . ' ) ORDER BY shipments.id ASC';
+        return $this->select($q, 'i', array($isArchieved ? 1 : 0));
     }
 
-    public function getAllShipments($isArchieved = false)
+    public function get_all_shipments($isArchieved = false)
     {
         return $this->select(ShipmentModel::ALL_SHIPMENTS_REQ, 'i', array($isArchieved ? 1 : 0));
     }
 
-    public function getShipments()
+    public function get_shipments()
     {
         return $this->select("SELECT * FROM shipments ORDER BY id DESC");
     }
 
-    protected function fortifyRef($data, $name)
+    protected function fortify_ref($data, $name)
     {
         return  isset($data[$name]) && $data[$name] != -1 ? $data[$name] : -2;
     }
 
-    public function addShipment($data)
+    public function add_shipment($data)
     {
         $res = $this->execute("INSERT INTO shipments (`number`, `dest`, `ddate`, `orgId`, `isArchieved`) VALUES (?, ?, ?, ?, ?)", 'sssii',
                     array($data['number'], $data['dest'], $data['ddate'],
-                        $this->fortifyRef($data, 'orgId'), $data['isArchieved']));
-        return array("res" => $res, "ref" => $this->lastInsertId());
+                        $this->fortify_ref($data, 'orgId'), $data['isArchieved']));
+        return array("res" => $res, "ref" => $this->last_insert_id());
     }
 
-    public function getShipment($id)
+    public function get_shipment($id)
     {
         $result = $this->select("SELECT * FROM shipments WHERE id = ?", 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
-    public function getShipmentIdByStatusId($statusId)
+    public function get_shipment_id_by_status_id($statusId)
     {
         $result = $this->select("SELECT statuses.shipmentId FROM statuses WHERE statuses.id = ?", 's', array($statusId));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
-    public function getShipmentEnriched($id)
+    public function get_shipment_enriched($id)
     {
         $result = $this->select(ShipmentModel::SHIPMENT_REQ, 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
-    public function getOrgByShipmentId($id)
+    public function get_org_by_shipment_id($id)
     {
         $result = $this->select('SELECT orgId FROM shipments WHERE id = ?', 'i', array($id));
         return !is_null($result) && count($result) > 0 ? $result[0] : null;
     }
 
-    public function updateShipment($id, $data)
+    public function update_shipment($id, $data)
     {
         $res = $this->execute("UPDATE shipments SET number = ?, dest = ?, ddate = ?, orgId = ? WHERE id = ?", 'sssii',
                             array($data['number'], $data['dest'], $data['ddate'],
-                               $this->fortifyRef($data, 'orgId'), $id)) ;
+                               $this->fortify_ref($data, 'orgId'), $id)) ;
         return array("res" => $res );
     }
 
-    public function updateDDate($data)
+    public function update_delivery_date($data)
     {
         $res = $this->execute("UPDATE shipments SET ddate = ? WHERE id = ?" , 'si',
                                array($data['ddate'], $data['shipmentId']));
         return array("res" => $res );
     }
 
-    public function deleteShipment($id)
+    public function delete_shipment($id)
     {
         $res = $this->execute("DELETE FROM shipments WHERE id = ?", 'i', array($id));
         return array("res" => $res );

@@ -36,7 +36,7 @@ try {
     $uri = explode( '/', $uri );
 
     if (!isset($uri[2])) {
-        $auth->notFound('Не задан метод API');
+        $auth->not_found('Не задан метод API');
     }
 
     $controller = null;
@@ -47,7 +47,7 @@ try {
     }
     else
     {
-        $user = $auth->checkAuth();
+        $user = $auth->check_auth();
         if ($uri[2] == 'orgs') {
             require PROJECT_ROOT_PATH . "/Controller/Api/OrgController.php";
             $controller = new OrgController();
@@ -68,7 +68,7 @@ try {
             }
         }
         if (is_null($controller)) {
-            $auth->notFound('Неизвестный метод API');
+            $auth->not_found('Неизвестный метод API');
         }
         else {
             $controller->execute(isset($uri[3]) ? $uri[3] : null, $_SERVER["REQUEST_METHOD"], $user);

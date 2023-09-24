@@ -28,15 +28,19 @@
 
 class Database
 {
-    protected $connection = null;
+    protected static $connection = null;
+    protected static $refs = 0;
     public function __construct()
     {
         try {
-            $this->connection = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE_NAME);
-            if ( mysqli_connect_errno()) {
-                throw new Exception("Could not connect to database.");
+            if (self::$connection == null) {
+                self::$connection = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE_NAME);
+                if ( mysqli_connect_errno()) {
+                    throw new Exception("Could not connect to database.");
+                }
+                self::$connection->set_charset("utf8mb4");
             }
-            $this->connection->set_charset("utf8mb4");
+            self::$refs++;
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
@@ -44,7 +48,7 @@ class Database
     public function select($query = "" , $types = "", $params = [])
     {
         try {
-            $stmt = $this->executeStatement( $query , $types, $params );
+            $stmt = $this->execute_statement( $query , $types, $params );
             $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
             return $result;
@@ -56,7 +60,7 @@ class Database
     public function execute($query = "" , $types = "", $params = [])
     {
         try {
-            $stmt = $this->executeStatement( $query , $types, $params );
+            $stmt = $this->execute_statement( $query , $types, $params );
             $res = $stmt->affected_rows;
             $stmt->close();
         } catch(Exception $e) {
@@ -64,10 +68,10 @@ class Database
         }
         return $res;
     }
-    private function executeStatement($query = "" , $types= "", $params = [])
+    private function execute_statement($query = "" , $types= "", $params = [])
     {
         try {
-            $stmt = $this->connection->prepare( $query );
+            $stmt = self::$connection->prepare( $query );
             if($stmt === false) {
                 throw New Exception("Unable to do prepared statement: " . $query);
             }
@@ -81,30 +85,32 @@ class Database
         }
     }
 
-    public function startTransaction()
+    public function start_transaction()
     {
-        $this->connection->begin_transaction();
+        self::$connection->begin_transaction();
     }
 
-    public function commitTransaction()
+    public function commit_transaction()
     {
-        $this->connection->commit();
+        self::$connection->commit();
     }
 
-    public function rollbackTransaction()
+    public function rollback_transaction()
     {
-        $this->connection->rollback();
+        self::$connection->rollback();
     }
 
-    public function lastInsertId()
+    public function last_insert_id()
     {
-	return $this->connection->insert_id;
+	    return self::$connection->insert_id;
     }
 
     public function __destruct()
     {
-        if ($this->connection) {
-            $this->connection->close();
+        self::$refs--;
+        if (self::$refs == 0 && self::$connection) {
+            self::$connection->close();
+            self::$connection = null;
         }
     }
 }

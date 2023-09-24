@@ -40,69 +40,69 @@ class ShipmentController extends BaseController
             $statusModel = new StatusModel();
             $m = strtoupper($method);
             if ($id == 'add' && $m == 'POST') {
-                $this->fenceManager($user);
-                $data = $this->getPostData();
-                $this->checkParams($data, ['number', 'ddate', 'dest', 'status', 'date', 'location', 'orgId']);
+                $this->fence_manager($user);
+                $data = $this->get_post_data();
+                $this->check_params($data, ['number', 'ddate', 'dest', 'status', 'date', 'location', 'orgId']);
                 $data['isArchieved'] = false;
-                $rsp = $shipmentModel->addShipment($data);
+                $rsp = $shipmentModel->add_shipment($data);
                 if ($rsp['res'] < 1) {
-                    $this->notSuccessful('Отправление с таким номером уже зарегистрировано.');
+                    $this->not_successful('Отправление с таким номером уже зарегистрировано.');
                 }
 		        $data['shipmentId'] = $rsp['ref'];
-                $rsp2 = $statusModel->addStatus($data);
+                $rsp2 = $statusModel->add_status($data);
                 if ($rsp2['res'] < 1) {
-                    $this->notSuccessful('Не удалось зарегистрировать начальный статус для отправления.');
+                    $this->not_successful('Не удалось зарегистрировать начальный статус для отправления.');
                 }
                 $rsp['ref2'] = $rsp2['ref'];
             }
             elseif ($method == 'GET') {
                 if ($id == null) {
                     if ($user->isManager) {
-                        $rsp = $shipmentModel->getAllShipments(false);
+                        $rsp = $shipmentModel->get_all_shipments(false);
                     }
                     else {
-                        $rsp = $shipmentModel->getFilteredShipments($user->orgId, false);
+                        $rsp = $shipmentModel->get_filtered_shipments($user->orgs, false);
                     }
                 }
                 elseif ($id == 'archieve') {
                     if ($user->isManager) {
-                        $rsp = $shipmentModel->getAllShipments(true);
+                        $rsp = $shipmentModel->get_all_shipments(true);
                     }
                     else {
-                        $rsp = $shipmentModel->getFilteredShipments($user->orgId, true);
+                        $rsp = $shipmentModel->get_filtered_shipments($user->orgs, true);
                     }
                 }
                 else {
-                    $rsp = $shipmentModel->getShipmentEnriched($id);
+                    $rsp = $shipmentModel->get_shipment_enriched($id);
                     if (!$rsp) {
-                        $this->notFound('Информация об отправлении не найдена.');
+                        $this->not_found('Информация об отправлении не найдена.');
                     }
 
-                    if (!$user->isManager  && !$this->checkOrg($rsp, $user)) {
+                    if (!$user->isManager  && !$this->check_org($rsp, $user)) {
                         $this->forbidden('Недостаточно прав для выполнения операции.');
                     }
 
                 }
             }
             elseif ($method == 'PUT' && $id != null) {
-                $this->fenceAdmin($user);
-                $data = $this->getPostData();
-                $this->checkParams($data, ['number', 'ddate', 'dest', 'orgId']);
-                $rsp = $shipmentModel->updateShipment($id, $data);
+                $this->fence_admin($user);
+                $data = $this->get_post_data();
+                $this->check_params($data, ['number', 'ddate', 'dest', 'orgId']);
+                $rsp = $shipmentModel->update_shipment($id, $data);
             }
             elseif ($method == 'DELETE'  && $id != null) {
-                $this->fenceAdmin($user);
-                $shipmentModel->startTransaction();
-                $rsp = $shipmentModel->deleteShipment($id);
+                $this->fence_admin($user);
+                $shipmentModel->start_transaction();
+                $rsp = $shipmentModel->delete_shipment($id);
                 if ($rsp['res'] < 1) {
-                    $shipmentModel->rollbackTransaction();
-                    $this->notSuccessful('Не удалось удалить отправление.');
+                    $shipmentModel->rollback_transaction();
+                    $this->not_successful('Не удалось удалить отправление.');
                 }
-                $statusModel->deleteStatusesByShipmentId($id);
-                $shipmentModel->commitTransaction();
+                $statusModel->delete_statuses_by_shipment_id($id);
+                $shipmentModel->commit_transaction();
             }
             else  {
-                $this->notSupported();
+                $this->not_supported();
             }
         }
         catch (Error $e) {
@@ -111,7 +111,7 @@ class ShipmentController extends BaseController
         if (!$strErrorDesc) {
             $this->ok($rsp);
         } else {
-            $this->serverError($strErrorDesc);
+            $this->server_error($strErrorDesc);
         }
     }
 
